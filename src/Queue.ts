@@ -2,6 +2,7 @@ import LinkedList from "./LinkedList";
 
 class Queue<T> {
   private readonly _linkedList: LinkedList<T>;
+
   constructor() {
     this._linkedList = new LinkedList<T>();
   }
