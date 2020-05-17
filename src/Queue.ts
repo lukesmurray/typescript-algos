@@ -12,7 +12,7 @@ class Queue<T> {
   }
 
   dequeue(): T | undefined {
-    return this._linkedList.popStart();
+    return this._linkedList.shift();
   }
 
   isEmpty(): boolean {

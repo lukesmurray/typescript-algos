@@ -2,18 +2,18 @@ class LinkedList<T> {
   private _tail: LinkedListNode<T> | undefined;
   private _head: LinkedListNode<T> | undefined;
   private _length: number;
+
   constructor() {
     this._head = undefined;
     this._tail = undefined;
     this._length = 0;
   }
 
-  pushStart(value: T): number {
+  unshift(value: T): number {
     // create new head with next value set to prev head
     this._head = new LinkedListNode(value, undefined, this._head);
-    // never undefined because we just set next on the head
+    // set back pointer on prev head
     if (this._head.next !== undefined) {
-      // set back pointer on prev head
       this._head.next.prev = this._head;
     }
     if (this._tail === undefined) {
@@ -23,7 +23,7 @@ class LinkedList<T> {
     return this._length;
   }
 
-  popStart(): T | undefined {
+  shift(): T | undefined {
     if (this._head === undefined) {
       return undefined;
     }
@@ -40,9 +40,8 @@ class LinkedList<T> {
 
   push(value: T): number {
     this._tail = new LinkedListNode(value, this._tail, undefined);
-    // never undefined because we just set prev on the tail
+    // set next pointer on prev tail
     if (this._tail.prev !== undefined) {
-      // set next pointer on prev tail
       this._tail.prev.next = this._tail;
     }
     if (this._head === undefined) {

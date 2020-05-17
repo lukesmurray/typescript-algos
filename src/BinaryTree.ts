@@ -1,9 +1,9 @@
-type CompareFn<T> = (a: T, b: T) => number;
+import { CompareFn, getCompareFnOrDefault } from "./Util";
 
 class BinaryTree<T> {
   private _root: BinaryTreeNode<T> | undefined;
   private readonly _compareFn: (a: T, b: T) => number;
-  _length: number;
+  private _length: number;
 
   /**
    *
@@ -15,8 +15,7 @@ class BinaryTree<T> {
    */
   constructor(compareFn?: CompareFn<T>) {
     this._root = undefined;
-    this._compareFn =
-      compareFn ?? ((a: T, b: T) => (a < b ? -1 : a > b ? 1 : 0));
+    this._compareFn = getCompareFnOrDefault<T>(compareFn);
     this._length = 0;
   }
 
@@ -131,7 +130,7 @@ class BinaryTree<T> {
     return this._length;
   }
 
-  remove(value: T): BinaryTreeNode<T> | undefined {
+  remove(value: T): T | undefined {
     const nodeToRemove = this.search(value);
     let nodeToSplice: BinaryTreeNode<T> | undefined;
     let childOfNodeToSplice: BinaryTreeNode<T> | undefined;
@@ -174,6 +173,9 @@ class BinaryTree<T> {
     if (nodeToSplice !== nodeToRemove && nodeToSplice !== undefined) {
       nodeToRemove.value = nodeToSplice.value;
     }
+
+    this._length--;
+    return value;
   }
 
   get length(): number {

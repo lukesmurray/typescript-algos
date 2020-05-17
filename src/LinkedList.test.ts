@@ -20,14 +20,14 @@ test("basic start operations work", () => {
   const values = Array.from(Array(100), () => Math.random());
   const linkedList = new LinkedList<number>();
   values.forEach((value) => {
-    linkedList.pushStart(value);
+    linkedList.unshift(value);
   });
   for (let i = values.length - 1; i >= 0; i--) {
     expect(linkedList.isEmpty()).toEqual(false);
-    expect(linkedList.popStart()).toEqual(values[i]);
+    expect(linkedList.shift()).toEqual(values[i]);
     expect(linkedList.length).toEqual(i);
   }
   expect(linkedList.isEmpty()).toEqual(true);
-  expect(linkedList.popStart()).toEqual(undefined);
-  expect(linkedList.popStart()).toEqual(undefined);
+  expect(linkedList.shift()).toEqual(undefined);
+  expect(linkedList.shift()).toEqual(undefined);
 });

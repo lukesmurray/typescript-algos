@@ -39,3 +39,38 @@ test("binary tree works", () => {
     }
   }
 });
+
+test("binary tree insert and remove", () => {
+  for (const values of [
+    Array.from(Array(100), (v, i) => i).reverse(),
+    Array.from(Array(100), (v, i) => i),
+  ]) {
+    const tree = new BinaryTree<number>();
+    // insert all values and make sure they all work
+    values.forEach((v, i) => {
+      expect(tree.insert(v)).toEqual(i + 1);
+      expect(tree.length).toEqual(i + 1);
+      expect(tree.isEmpty).toEqual(false);
+    });
+    values.forEach((v) => {
+      expect(tree.search(v)?.value).toEqual(v);
+    });
+    const evenValues = values.filter((v) => v % 2 === 0);
+    const oddValues = values.filter((v) => v % 2 !== 0);
+    evenValues.reverse().forEach((v) => expect(tree.remove(v)).toEqual(v));
+    evenValues.forEach((v) => {
+      expect(tree.search(v)?.value).toBeUndefined();
+    });
+    oddValues.forEach((v) => {
+      expect(tree.search(v)?.value).toEqual(v);
+    });
+    evenValues.forEach((v) => tree.insert(v));
+    evenValues.forEach((v) => {
+      expect(tree.search(v)?.value).toEqual(v);
+    });
+    values.forEach((v) => {
+      tree.remove(v);
+    });
+    expect(tree.isEmpty).toEqual(true);
+  }
+});
