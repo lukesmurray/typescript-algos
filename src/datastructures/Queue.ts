@@ -15,10 +15,6 @@ class Queue<T> {
     return this._linkedList.shift();
   }
 
-  isEmpty(): boolean {
-    return this._linkedList.length === 0;
-  }
-
   get length(): number {
     return this._linkedList.length;
   }

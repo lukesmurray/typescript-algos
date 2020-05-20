@@ -7,9 +7,7 @@ test("basic queue operations work", () => {
     queue.enqueue(value);
   });
   for (let i = 0; i < values.length; i++) {
-    expect(queue.isEmpty()).toEqual(false);
     expect(queue.dequeue()).toEqual(values[i]);
     expect(queue.length).toEqual(values.length - i - 1);
   }
-  expect(queue.isEmpty()).toEqual(true);
 });

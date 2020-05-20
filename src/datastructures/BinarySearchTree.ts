@@ -1,7 +1,8 @@
-import { CompareFn, getCompareFnOrDefault } from "./Util";
+import { CompareFn, defaultCompareFn } from "./Util";
+import Queue from "./Queue";
 
-class BinaryTree<T> {
-  private _root: BinaryTreeNode<T> | undefined;
+class BinarySearchTree<T> {
+  private _root: BinarySearchTreeNode<T> | undefined;
   private readonly _compareFn: (a: T, b: T) => number;
   private _length: number;
 
@@ -15,18 +16,47 @@ class BinaryTree<T> {
    */
   constructor(compareFn?: CompareFn<T>) {
     this._root = undefined;
-    this._compareFn = getCompareFnOrDefault<T>(compareFn);
+    this._compareFn = compareFn ?? defaultCompareFn;
     this._length = 0;
   }
 
-  *inOrderWalk(fromNode?: BinaryTreeNode<T>): Generator<T, void, void> {
+  *inOrderTraversal(
+    fromNode?: BinarySearchTreeNode<T>
+  ): Generator<T, void, void> {
     fromNode = fromNode ?? this._root;
     if (fromNode !== undefined) {
-      yield* fromNode.inOrderWalk();
+      yield* fromNode.inOrderTraversal();
     }
   }
 
-  search(value: T): BinaryTreeNode<T> | undefined {
+  *preOrderTraversal(
+    fromNode?: BinarySearchTreeNode<T>
+  ): Generator<T, void, void> {
+    fromNode = fromNode ?? this._root;
+    if (fromNode !== undefined) {
+      yield* fromNode.preOrderTraversal();
+    }
+  }
+
+  *postOrderTraversal(
+    fromNode?: BinarySearchTreeNode<T>
+  ): Generator<T, void, void> {
+    fromNode = fromNode ?? this._root;
+    if (fromNode !== undefined) {
+      yield* fromNode.postOrderTraversal();
+    }
+  }
+
+  *levelTraversal(
+    fromNode?: BinarySearchTreeNode<T>
+  ): Generator<T, void, void> {
+    fromNode = fromNode ?? this._root;
+    if (fromNode !== undefined) {
+      yield* fromNode.levelTraversal();
+    }
+  }
+
+  contains(value: T): BinarySearchTreeNode<T> | undefined {
     let curr = this._root;
     while (curr != null) {
       const compareValue = this._compareFn(value, curr.value);
@@ -41,7 +71,7 @@ class BinaryTree<T> {
     return undefined;
   }
 
-  min(fromNode?: BinaryTreeNode<T>): BinaryTreeNode<T> | undefined {
+  min(fromNode?: BinarySearchTreeNode<T>): BinarySearchTreeNode<T> | undefined {
     // min is the leftmost node so traverse left
     let curr = fromNode ?? this._root;
     while (curr?.left != null) {
@@ -50,7 +80,7 @@ class BinaryTree<T> {
     return curr;
   }
 
-  max(fromNode?: BinaryTreeNode<T>): BinaryTreeNode<T> | undefined {
+  max(fromNode?: BinarySearchTreeNode<T>): BinarySearchTreeNode<T> | undefined {
     // max is the rightmost node so traverse right
     let curr = fromNode ?? this._root;
     while (curr?.right != null) {
@@ -59,7 +89,9 @@ class BinaryTree<T> {
     return curr;
   }
 
-  successor(ofNode: BinaryTreeNode<T>): BinaryTreeNode<T> | undefined {
+  successor(
+    ofNode: BinarySearchTreeNode<T>
+  ): BinarySearchTreeNode<T> | undefined {
     let curr = ofNode;
     // if right child exists return min of right tree
     if (curr.right !== undefined) {
@@ -77,7 +109,9 @@ class BinaryTree<T> {
     return next;
   }
 
-  predecessor(ofNode: BinaryTreeNode<T>): BinaryTreeNode<T> | undefined {
+  predecessor(
+    ofNode: BinarySearchTreeNode<T>
+  ): BinarySearchTreeNode<T> | undefined {
     let curr = ofNode;
     // if left child exists return max of left tree
     if (curr.left !== undefined) {
@@ -95,12 +129,12 @@ class BinaryTree<T> {
     return next;
   }
 
-  insert(value: T): number {
-    const newNode = new BinaryTreeNode(value);
-    let parent: BinaryTreeNode<T> | undefined;
+  add(value: T): number {
+    const newNode = new BinarySearchTreeNode(value);
+    let parent: BinarySearchTreeNode<T> | undefined;
 
     // iterate down the tree to a leaf
-    let curr: BinaryTreeNode<T> | undefined = this._root;
+    let curr: BinarySearchTreeNode<T> | undefined = this._root;
     while (curr !== undefined) {
       // keep a back pointer to the parent
       parent = curr;
@@ -131,9 +165,9 @@ class BinaryTree<T> {
   }
 
   remove(value: T): T | undefined {
-    const nodeToRemove = this.search(value);
-    let nodeToSplice: BinaryTreeNode<T> | undefined;
-    let childOfNodeToSplice: BinaryTreeNode<T> | undefined;
+    const nodeToRemove = this.contains(value);
+    let nodeToSplice: BinarySearchTreeNode<T> | undefined;
+    let childOfNodeToSplice: BinarySearchTreeNode<T> | undefined;
 
     if (nodeToRemove === undefined) {
       return undefined;
@@ -181,22 +215,18 @@ class BinaryTree<T> {
   get length(): number {
     return this._length;
   }
-
-  get isEmpty(): boolean {
-    return this._length === 0;
-  }
 }
 
-class BinaryTreeNode<T> {
+class BinarySearchTreeNode<T> {
   value: T;
-  left: BinaryTreeNode<T> | undefined;
-  right: BinaryTreeNode<T> | undefined;
-  parent: BinaryTreeNode<T> | undefined;
+  left: BinarySearchTreeNode<T> | undefined;
+  right: BinarySearchTreeNode<T> | undefined;
+  parent: BinarySearchTreeNode<T> | undefined;
   constructor(
     value: T,
-    left?: BinaryTreeNode<T>,
-    right?: BinaryTreeNode<T>,
-    parent?: BinaryTreeNode<T>
+    left?: BinarySearchTreeNode<T>,
+    right?: BinarySearchTreeNode<T>,
+    parent?: BinarySearchTreeNode<T>
   ) {
     this.value = value;
     this.left = left;
@@ -204,15 +234,52 @@ class BinaryTreeNode<T> {
     this.parent = parent;
   }
 
-  *inOrderWalk(): Generator<T, void, void> {
+  *inOrderTraversal(): Generator<T, void, void> {
     if (this.left !== undefined) {
-      yield* this.left.inOrderWalk();
+      yield* this.left.inOrderTraversal();
     }
     yield this.value;
     if (this.right !== undefined) {
-      yield* this.right.inOrderWalk();
+      yield* this.right.inOrderTraversal();
+    }
+  }
+
+  *preOrderTraversal(): Generator<T, void, void> {
+    yield this.value;
+    if (this.left !== undefined) {
+      yield* this.left.inOrderTraversal();
+    }
+    if (this.right !== undefined) {
+      yield* this.right.inOrderTraversal();
+    }
+  }
+
+  *postOrderTraversal(): Generator<T, void, void> {
+    if (this.left !== undefined) {
+      yield* this.left.inOrderTraversal();
+    }
+    if (this.right !== undefined) {
+      yield* this.right.inOrderTraversal();
+    }
+    yield this.value;
+  }
+
+  *levelTraversal(): Generator<T, void, void> {
+    const q = new Queue<BinarySearchTreeNode<T>>();
+    q.enqueue(this);
+    while (q.length !== 0) {
+      const next = q.dequeue();
+      if (next !== undefined) {
+        if (next.left !== undefined) {
+          q.enqueue(next.left);
+        }
+        if (next.right !== undefined) {
+          q.enqueue(next.right);
+        }
+        yield next.value;
+      }
     }
   }
 }
 
-export default BinaryTree;
+export default BinarySearchTree;
