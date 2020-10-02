@@ -10,7 +10,7 @@ test("basic operations work", () => {
   expect(trie.get("hello hello")).toBe("world world");
   expect([...trie.findValues("h")]).toEqual(["world", "world world"]);
   expect([...trie.find("h")]).toEqual([
-    { prefix: "hello", value: "world" },
-    { prefix: "hello hello", value: "world world" },
+    { key: "hello", value: "world" },
+    { key: "hello hello", value: "world world" },
   ]);
 });

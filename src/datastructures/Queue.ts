@@ -18,6 +18,10 @@ class Queue<T> {
   get length(): number {
     return this._linkedList.length;
   }
+
+  isEmpty(): boolean {
+    return this._linkedList.length === 0;
+  }
 }
 
 export default Queue;
