@@ -99,3 +99,27 @@ test("massive word set works", () => {
     ])
   );
 });
+
+test("example animals works", () => {
+  const aho = new AhoCorasick<string>();
+  // @ts-ignore
+  for (const word of [
+    "quick brown fox",
+    "brown fox",
+    "fox",
+    "lazy dog",
+    "dog",
+  ]) {
+    aho.set(word, word);
+  }
+  aho.build();
+  expect([
+    ...aho.match("the quick brown fox jumped over the lazy dog"),
+  ]).toEqual([
+    { value: "quick brown fox", start: 4, end: 19 },
+    { value: "brown fox", start: 10, end: 19 },
+    { value: "fox", start: 16, end: 19 },
+    { value: "lazy dog", start: 36, end: 44 },
+    { value: "dog", start: 41, end: 44 },
+  ]);
+});
