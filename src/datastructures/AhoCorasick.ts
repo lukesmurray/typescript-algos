@@ -6,6 +6,7 @@ const SENTINEL = "VALUE";
 const PARENT = "PARENT";
 const SUFFIXLINK = "SUFFIX";
 const OUTPUTLINK = "OUTPUT";
+const DEPTH = "DEPTH";
 
 interface AhoNode<T> {
   [key: string]: AhoNode<T> | undefined;
@@ -13,6 +14,8 @@ interface AhoNode<T> {
 
 interface AhoMatch<T> {
   value: T;
+  start: number;
+  end: number;
 }
 
 export default class AhoCorasick<T> {
@@ -33,7 +36,10 @@ export default class AhoCorasick<T> {
   constructor() {
     this._upToDate = false;
     this._size = 0;
-    this.root = {};
+    this.root = {
+      // @ts-ignore
+      [DEPTH]: 0,
+    };
   }
 
   /**
@@ -97,6 +103,8 @@ export default class AhoCorasick<T> {
         node[token] ??
         (node[token] = {
           [PARENT]: parent,
+          // @ts-ignore
+          [DEPTH]: ((parent[DEPTH] as number) + 1) as any,
         });
     }
 
@@ -235,42 +243,67 @@ export default class AhoCorasick<T> {
     let token: string;
     let node: AhoNode<T> = this.root;
     let output: AhoNode<T> | undefined;
+    let start = 0;
+    let depth = 0;
+    let newDepth = 0;
+    let outputDepth = 0;
+    let outputStart = 0;
 
     if (!this._upToDate) {
       throw new Error("aho has not been built");
     }
 
+    // iterate through the string
     for (let i = 0, l = string.length; i < l; i++) {
       token = string[i];
+
       // while no edge labeled with the token
       while (node[token] === undefined) {
+        // if we reach the root break out of the loop
         if (node === this.root) {
           break;
         } else {
           // follow a suffix link
           node = node[SUFFIXLINK]!;
+
+          // increment the start pointer by the depth change of the suffix link
+          newDepth = (node[DEPTH] as unknown) as number;
+          start = start + (depth - newDepth);
+          depth = newDepth;
         }
       }
 
+      // if no token there is no match at this start and end so increment the start
       if (node[token] === undefined) {
+        start++;
         continue;
       }
 
       // follow the edge with the token
       node = node[token]!;
+      depth++;
 
       // if the current node is a pattern output the pattern
       if (node[SENTINEL] !== undefined) {
-        // @ts-ignore
-        yield { value: node[SENTINEL]! };
+        yield {
+          // @ts-ignore
+          value: node[SENTINEL]!,
+          start,
+          end: i + 1,
+        };
       }
 
       // output all words in the output links originating from the node
       output = node[OUTPUTLINK];
+      outputDepth = ((output?.[DEPTH] as unknown) ?? 0) as number;
+      outputStart = start + (depth - outputDepth);
       while (output !== undefined) {
         // @ts-ignore
-        yield { value: output[SENTINEL]! };
+        yield { value: output[SENTINEL]!, start: outputStart, end: i + 1 };
         output = output[OUTPUTLINK];
+        newDepth = ((output?.[DEPTH] as unknown) ?? 0) as number;
+        outputStart = outputStart + (outputDepth - newDepth);
+        outputDepth = newDepth;
       }
     }
   }
