@@ -2,11 +2,14 @@
   "name": "typescript-algos",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "compile": "tsc",
-    "test": "jest",
-    "bench": "ts-node src/**/*.bench.ts"
+    "build": "tsc",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint",
+    "lint": "eslint src/**/*.ts",
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -20,10 +23,8 @@
   },
   "homepage": "https://github.com/lukesmurray/typescript-algos#readme",
   "devDependencies": {
-    "@types/benchmark": "^1.0.33",
     "@types/jest": "^25.2.1",
     "@typescript-eslint/eslint-plugin": "^2.31.0",
-    "benchmark": "^2.1.4",
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-config-standard-with-typescript": "^16.0.0",

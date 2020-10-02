@@ -1,4 +1,3 @@
-import words466k from "../data/466k-words.json";
 import AhoCorasick from "./AhoCorasick";
 
 test("basic aho operations work", () => {
@@ -84,20 +83,6 @@ test("degenerate patterns work", () => {
     { value: "aa", start: 4, end: 6 },
     { value: "a", start: 5, end: 6 },
   ]);
-});
-
-test("massive word set works", () => {
-  const aho = new AhoCorasick<string>();
-  // @ts-ignore
-  for (const word of words466k) {
-    aho.set(word, word);
-  }
-  aho.build();
-  console.log(
-    JSON.stringify([
-      ...aho.match("the quick brown fox jumped over the lazy dog"),
-    ])
-  );
 });
 
 test("example animals works", () => {

@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import Queue from "./Queue";
 
+// for leftmost semantics see
+// https://github.com/BurntSushi/aho-corasick/blob/master/DESIGN.md
+// https://github.com/BurntSushi/aho-corasick/blob/master/src/nfa.rs
+
 /* eslint-disable @typescript-eslint/no-dynamic-delete */
 const SENTINEL = "VALUE";
 const PARENT = "PARENT";
@@ -12,7 +16,7 @@ interface AhoNode<T> {
   [key: string]: AhoNode<T> | undefined;
 }
 
-interface AhoMatch<T> {
+export interface AhoMatch<T> {
   value: T;
   start: number;
   end: number;
