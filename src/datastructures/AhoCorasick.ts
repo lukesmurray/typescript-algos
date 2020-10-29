@@ -4,6 +4,10 @@ import Queue from "./Queue";
 // for leftmost semantics see
 // https://github.com/BurntSushi/aho-corasick/blob/master/DESIGN.md
 // https://github.com/BurntSushi/aho-corasick/blob/master/src/nfa.rs
+// only add failure transitions which do not occur after a match or do occur after a match but preserve the match
+// in the queue store the depth at which the first match was observed in the path to the current state
+// this is the depth where the beginning of the match was detected, if no match has been seen it is None
+// if the
 
 /* eslint-disable @typescript-eslint/no-dynamic-delete */
 const SENTINEL = "VALUE";
@@ -225,12 +229,21 @@ export default class AhoCorasick<T> {
 
       // add output links
 
+      // if the node is not the root
       if (node !== this.root) {
+        // reset the output link
         node[OUTPUTLINK] = undefined;
+
+        // follow the suffix link of node
         const u = node[SUFFIXLINK]!;
+
+        // if we get a match set the output link to the suffix link node
         if (u[SENTINEL] !== undefined) {
           node[OUTPUTLINK] = u;
-        } else {
+        }
+        // if we don't get a match set the output link to the output link
+        // of the node
+        else {
           node[OUTPUTLINK] = u[OUTPUTLINK];
         }
       }
