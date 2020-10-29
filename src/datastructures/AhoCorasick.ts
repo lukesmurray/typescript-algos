@@ -21,9 +21,22 @@ interface AhoNode<T> {
 }
 
 export interface AhoMatch<T> {
+  /**
+   * the value of the match
+   */
   value: T;
+  /**
+   * the start of the match inclusive
+   */
   start: number;
+  /**
+   * the end of the match exclusive.
+   */
   end: number;
+  /**
+   * the length of the match. equal to end - start.
+   */
+  length: number;
 }
 
 export default class AhoCorasick<T> {
@@ -91,6 +104,28 @@ export default class AhoCorasick<T> {
     // otherwise return the value
     // @ts-ignore
     return node[SENTINEL];
+  }
+
+  /**
+   * Check to see if a key is contained in aho corasick
+   * @param key the key to check in the trie
+   */
+  public has(key: string): boolean {
+    let node: AhoNode<T> | undefined = this.root;
+    let token: string;
+
+    // iterate over tokens
+    for (let i = 0, l = key.length; i < l; i++) {
+      token = key[i];
+      node = node[token];
+      // if we fall off the trie return undefined
+      if (node === undefined) {
+        return false;
+      }
+    }
+
+    // return true if the found node has a sentinel
+    return SENTINEL in node;
   }
 
   /**
@@ -183,6 +218,59 @@ export default class AhoCorasick<T> {
     return true;
   }
 
+  /**
+   * Find all values in the aho which start with the prefix
+   * @param prefix the prefix to search for in the trie.
+   */
+  public *find(prefix: string): Generator<{ key: string; value: T }> {
+    let node: AhoNode<T> | undefined = this.root;
+    let token: string;
+
+    for (let i = 0, l = prefix.length; i < l; i++) {
+      token = prefix[i];
+      node = node[token];
+
+      if (node === undefined) {
+        return;
+      }
+    }
+
+    // Performing DFS from prefix
+    const nodeStack: Array<AhoNode<T>> = [node];
+    const keyStack: string[] = [prefix];
+    let k: string;
+
+    // while there are nodes to look at
+    while (nodeStack.length !== 0) {
+      prefix = keyStack.pop()!;
+      node = nodeStack.pop()!;
+
+      // iterate over its direct children
+      for (k in node) {
+        // if we find a sentinel its a match yay
+        if (k === SENTINEL) {
+          // @ts-ignore
+          yield { key: prefix, value: node[SENTINEL]! };
+          continue;
+        }
+
+        // add the child to our stack
+        nodeStack.push(node[k]!);
+        keyStack.push(prefix + k);
+      }
+    }
+  }
+
+  /**
+   * Find all values in the trie which start with the prefix
+   * @param prefix the prefix to search for in the trie.
+   */
+  public *findValues(prefix: string): Generator<T> {
+    for (const node of this.find(prefix)) {
+      yield node.value;
+    }
+  }
+
   public build(): void {
     if (this._upToDate) {
       return;
@@ -256,7 +344,7 @@ export default class AhoCorasick<T> {
     this._upToDate = true;
   }
 
-  public *match(string: string): Generator<AhoMatch<T>> {
+  public match(string: string): Array<AhoMatch<T>> {
     let token: string;
     let node: AhoNode<T> = this.root;
     let output: AhoNode<T> | undefined;
@@ -265,6 +353,8 @@ export default class AhoCorasick<T> {
     let newDepth = 0;
     let outputDepth = 0;
     let outputStart = 0;
+
+    const matches: Array<AhoMatch<T>> = [];
 
     if (!this._upToDate) {
       throw new Error("aho has not been built");
@@ -302,12 +392,14 @@ export default class AhoCorasick<T> {
 
       // if the current node is a pattern output the pattern
       if (node[SENTINEL] !== undefined) {
-        yield {
+        const match: AhoMatch<T> = {
           // @ts-ignore
           value: node[SENTINEL]!,
           start,
           end: i + 1,
+          length: i + 1 - start,
         };
+        matches.push(match);
       }
 
       // output all words in the output links originating from the node
@@ -315,14 +407,38 @@ export default class AhoCorasick<T> {
       outputDepth = ((output?.[DEPTH] as unknown) ?? 0) as number;
       outputStart = start + (depth - outputDepth);
       while (output !== undefined) {
-        // @ts-ignore
-        yield { value: output[SENTINEL]!, start: outputStart, end: i + 1 };
+        const match: AhoMatch<T> = {
+          // @ts-ignore
+          value: output[SENTINEL]!,
+          start: outputStart,
+          end: i + 1,
+          length: i + 1 - outputStart,
+        };
+        matches.push(match);
         output = output[OUTPUTLINK];
         newDepth = ((output?.[DEPTH] as unknown) ?? 0) as number;
         outputStart = outputStart + (outputDepth - newDepth);
         outputDepth = newDepth;
       }
     }
+
+    return matches;
+  }
+
+  public matchLeftmostLongest(string: string): Array<AhoMatch<T>> {
+    const matches: Array<AhoMatch<T>> = [];
+    const allMatches = [...this.match(string)];
+    // sort by start ascending then by length descending
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    allMatches.sort((a, b) => a.start - b.start || b.length - a.length);
+    let nextPossible = 0;
+    for (const match of allMatches) {
+      if (match.start >= nextPossible) {
+        matches.push(match);
+        nextPossible = match.end;
+      }
+    }
+    return matches;
   }
 
   /**

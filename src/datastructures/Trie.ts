@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-dynamic-delete */
 
-const sentinel = "VALUE" as const;
+const SENTINEL = "VALUE" as const;
 
 interface TrieNode<T> {
   [key: string]: TrieNode<T> | undefined;
@@ -34,13 +34,13 @@ export default class Trie<T> {
       node = node[token] ?? (node[token] = {});
     }
 
-    if (!(sentinel in node)) {
+    if (!(SENTINEL in node)) {
       this._size++;
     }
 
     // set the sentinel to be the value
     // @ts-ignore
-    node[sentinel] = value;
+    node[SENTINEL] = value;
   }
 
   /**
@@ -63,13 +63,13 @@ export default class Trie<T> {
     }
 
     // if no sentinel return undefined (in tree but not a full word)
-    if (!(sentinel in node)) {
+    if (!(SENTINEL in node)) {
       return;
     }
 
     // otherwise return the value
     // @ts-ignore
-    return node[sentinel];
+    return node[SENTINEL];
   }
 
   /**
@@ -91,7 +91,7 @@ export default class Trie<T> {
     }
 
     // return true if the found node has a sentinel
-    return sentinel in node;
+    return SENTINEL in node;
   }
 
   /**
@@ -138,7 +138,7 @@ export default class Trie<T> {
       }
     }
 
-    if (!(sentinel in node)) {
+    if (!(SENTINEL in node)) {
       return false;
     }
 
@@ -147,7 +147,7 @@ export default class Trie<T> {
     if (toPrune !== null && tokenToPrune !== null) {
       delete toPrune[tokenToPrune];
     } else {
-      delete node[sentinel];
+      delete node[SENTINEL];
     }
 
     return true;
@@ -183,9 +183,9 @@ export default class Trie<T> {
       // iterate over its direct children
       for (k in node) {
         // if we find a sentinel its a match yay
-        if (k === sentinel) {
+        if (k === SENTINEL) {
           // @ts-ignore
-          yield { key: prefix, value: node[sentinel]! };
+          yield { key: prefix, value: node[SENTINEL]! };
           continue;
         }
 
