@@ -1,0 +1,3 @@
+- Aho Corasick
+  - [ ] raise error on collision
+  - [ ] allow collisions (return sets)
