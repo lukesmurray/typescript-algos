@@ -16,6 +16,12 @@ const SUFFIXLINK = "SUFFIX";
 const OUTPUTLINK = "OUTPUT";
 const DEPTH = "DEPTH";
 
+interface AhoSerialize<T> {
+  root: AhoNode<T>;
+  upToDate: boolean;
+  size: number;
+}
+
 interface AhoNode<T> {
   [key: string]: AhoNode<T> | undefined;
 }
@@ -54,7 +60,7 @@ export default class AhoCorasick<T> {
    */
   private readonly root: AhoNode<T>;
 
-  constructor() {
+  constructor(root?: AhoNode<T>) {
     this._upToDate = false;
     this._size = 0;
     this.root = {
@@ -464,5 +470,20 @@ export default class AhoCorasick<T> {
       }
     }
     return childrenCount;
+  }
+
+  public serialize(): AhoSerialize<T> {
+    return {
+      root: this.root,
+      size: this.size,
+      upToDate: this.upToDate,
+    };
+  }
+
+  public static deserialize<U>(serialized: AhoSerialize<U>): AhoCorasick<U> {
+    const aho = new AhoCorasick<U>(serialized.root);
+    aho._size = serialized.size;
+    aho._upToDate = serialized.upToDate;
+    return aho;
   }
 }

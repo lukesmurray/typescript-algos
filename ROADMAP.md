@@ -1,3 +1,4 @@
 - Aho Corasick
   - [ ] raise error on collision
   - [ ] allow collisions (return sets)
+  - [ ] allow case insensitive matching
