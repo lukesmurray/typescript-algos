@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import Full from "../util/Full";
 import Queue from "./Queue";
 
 // for leftmost semantics see
@@ -16,7 +17,35 @@ const SUFFIXLINK = "SUFFIX";
 const OUTPUTLINK = "OUTPUT";
 const DEPTH = "DEPTH";
 
-interface AhoSerialize<T> {
+interface BaseAhoBuildOptions {
+  /**
+   * The maximum number of milliseconds to use per frame.
+   */
+  maxMillisecondsPerFrame?: number;
+}
+
+interface AhoBuildOptionsWithRaf extends BaseAhoBuildOptions {
+  /**
+   * wether or not to use request animation frame while building.
+   * If true the build process will use request animation frame to
+   * avoid throttling the ui thread.
+   */
+  useRaf: true;
+}
+interface AhoBuildOptionsWithoutRaf extends BaseAhoBuildOptions {
+  /**
+   * wether or not to use request animation frame while building.
+   * If true the build process will use request animation frame to
+   * avoid throttling the ui thread.
+   */
+  useRaf?: false;
+}
+
+export type AhoBuildOptions =
+  | AhoBuildOptionsWithRaf
+  | AhoBuildOptionsWithoutRaf;
+
+export interface AhoSerialize<T> {
   root: AhoNode<T>;
   upToDate: boolean;
   size: number;
@@ -277,15 +306,28 @@ export default class AhoCorasick<T> {
     }
   }
 
-  public build(): void {
+  public build(buildOptions?: AhoBuildOptionsWithoutRaf): void;
+  public build(buildOptions: AhoBuildOptionsWithRaf): Promise<void>;
+  public build(buildOptions?: AhoBuildOptions): Promise<void> | void {
+    const normalizedBuildOptions: Full<AhoBuildOptions> = {
+      maxMillisecondsPerFrame: 3,
+      useRaf: false,
+      ...buildOptions,
+    };
+
     if (this._upToDate) {
+      if (normalizedBuildOptions.useRaf) {
+        return Promise.resolve();
+      }
       return;
     }
 
     // breadth first search
     const childQueue = new Queue<{ token?: string; node: AhoNode<T> }>();
     childQueue.enqueue({ node: this.root });
-    while (!childQueue.isEmpty()) {
+
+    // the process function for breadth first search
+    const processChild = (): void => {
       // add suffix links
 
       // add suffix links to the first child in the queue
@@ -346,8 +388,45 @@ export default class AhoCorasick<T> {
       for (const [token, child] of this.nodeGetChildrenEntries(node)) {
         childQueue.enqueue({ token, node: child });
       }
+    };
+
+    // if not using raf then process children until queue is empty
+    if (!normalizedBuildOptions.useRaf) {
+      while (!childQueue.isEmpty()) {
+        processChild();
+      }
+      this._upToDate = true;
+    } else {
+      // if using raf return a promise
+      return new Promise((resolve, reject) => {
+        // process children using raf
+        const processChildQueue = (taskStartTime: number): void => {
+          // process children for maxMillisecondsPerFrame
+          try {
+            let taskFinishTime;
+            do {
+              processChild();
+              taskFinishTime = performance.now();
+            } while (
+              !childQueue.isEmpty() &&
+              taskFinishTime - taskStartTime <
+                normalizedBuildOptions.maxMillisecondsPerFrame
+            );
+
+            // if done then return otherwise request another frame
+            if (!childQueue.isEmpty()) {
+              requestAnimationFrame(processChildQueue);
+            } else {
+              this._upToDate = true;
+              resolve();
+            }
+          } catch (err) {
+            reject(err);
+          }
+        };
+        requestAnimationFrame(processChildQueue);
+      });
     }
-    this._upToDate = true;
   }
 
   public match(string: string): Array<AhoMatch<T>> {

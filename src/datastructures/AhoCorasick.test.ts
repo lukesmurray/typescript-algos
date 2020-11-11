@@ -184,3 +184,79 @@ test("serialize animals works", () => {
     { value: "lazy dog", start: 36, end: 44, length: 8 },
   ]);
 });
+
+test("raf build works", async () => {
+  const aho = new AhoCorasick<string>();
+  // @ts-ignore
+  for (const word of [
+    "the",
+    "the quick",
+    "the quick brown",
+    "quick brown fox",
+    "brown fox",
+    "fox",
+    "lazy dog",
+    "dog",
+  ]) {
+    aho.set(word, word);
+  }
+  await aho.build({
+    useRaf: true,
+  });
+  expect(
+    aho.matchLeftmostLongest("the quick brown fox jumped over the lazy dog")
+  ).toEqual([
+    { value: "the quick brown", start: 0, end: 15, length: 15 },
+    { value: "fox", start: 16, end: 19, length: 3 },
+    { value: "the", start: 32, end: 35, length: 3 },
+    { value: "lazy dog", start: 36, end: 44, length: 8 },
+  ]);
+  const serialized = aho.serialize();
+  const newAho = AhoCorasick.deserialize(serialized);
+  expect(
+    newAho.matchLeftmostLongest("the quick brown fox jumped over the lazy dog")
+  ).toEqual([
+    { value: "the quick brown", start: 0, end: 15, length: 15 },
+    { value: "fox", start: 16, end: 19, length: 3 },
+    { value: "the", start: 32, end: 35, length: 3 },
+    { value: "lazy dog", start: 36, end: 44, length: 8 },
+  ]);
+});
+
+test("raf build works without raf", async () => {
+  const aho = new AhoCorasick<string>();
+  // @ts-ignore
+  for (const word of [
+    "the",
+    "the quick",
+    "the quick brown",
+    "quick brown fox",
+    "brown fox",
+    "fox",
+    "lazy dog",
+    "dog",
+  ]) {
+    aho.set(word, word);
+  }
+  aho.build({
+    useRaf: false,
+  });
+  expect(
+    aho.matchLeftmostLongest("the quick brown fox jumped over the lazy dog")
+  ).toEqual([
+    { value: "the quick brown", start: 0, end: 15, length: 15 },
+    { value: "fox", start: 16, end: 19, length: 3 },
+    { value: "the", start: 32, end: 35, length: 3 },
+    { value: "lazy dog", start: 36, end: 44, length: 8 },
+  ]);
+  const serialized = aho.serialize();
+  const newAho = AhoCorasick.deserialize(serialized);
+  expect(
+    newAho.matchLeftmostLongest("the quick brown fox jumped over the lazy dog")
+  ).toEqual([
+    { value: "the quick brown", start: 0, end: 15, length: 15 },
+    { value: "fox", start: 16, end: 19, length: 3 },
+    { value: "the", start: 32, end: 35, length: 3 },
+    { value: "lazy dog", start: 36, end: 44, length: 8 },
+  ]);
+});
