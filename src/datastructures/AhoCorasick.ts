@@ -58,9 +58,9 @@ export default class AhoCorasick<T> {
   /**
    * the root of the automata
    */
-  private readonly root: AhoNode<T>;
+  private root: AhoNode<T>;
 
-  constructor(root?: AhoNode<T>) {
+  constructor() {
     this._upToDate = false;
     this._size = 0;
     this.root = {
@@ -481,9 +481,10 @@ export default class AhoCorasick<T> {
   }
 
   public static deserialize<U>(serialized: AhoSerialize<U>): AhoCorasick<U> {
-    const aho = new AhoCorasick<U>(serialized.root);
+    const aho = new AhoCorasick<U>();
     aho._size = serialized.size;
     aho._upToDate = serialized.upToDate;
+    aho.root = serialized.root;
     return aho;
   }
 }
