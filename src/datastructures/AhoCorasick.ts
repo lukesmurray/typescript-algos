@@ -234,7 +234,9 @@ export default class AhoCorasick<T> {
           try {
             let taskFinishTime;
             do {
-              processPattern();
+              if (patternStack.length !== 0) {
+                processPattern();
+              }
               taskFinishTime = performance.now();
             } while (
               patternStack.length !== 0 &&
@@ -462,7 +464,9 @@ export default class AhoCorasick<T> {
           try {
             let taskFinishTime;
             do {
-              processChild();
+              if (!childQueue.isEmpty()) {
+                processChild();
+              }
               taskFinishTime = performance.now();
             } while (
               !childQueue.isEmpty() &&
