@@ -74,6 +74,8 @@ export interface AhoMatch<T> {
   length: number;
 }
 
+export type AhoPatternDict<T> = Record<string, T>;
+
 export default class AhoCorasick<T> {
   /**
    * whether or not the automata is up to date.
@@ -196,6 +198,65 @@ export default class AhoCorasick<T> {
     this._upToDate = false;
   }
 
+  public setPatternDict(
+    patternDict: AhoPatternDict<T>,
+    buildOptions?: AhoBuildOptionsWithoutRaf
+  ): void;
+
+  public setPatternDict(
+    patternDict: AhoPatternDict<T>,
+    buildOptions: AhoBuildOptionsWithRaf
+  ): Promise<void>;
+
+  /**
+   * Set all the values from a pattern dictionary
+   */
+  public setPatternDict(
+    patternDict: AhoPatternDict<T>,
+    buildOptions?: AhoBuildOptions
+  ): Promise<void> | void {
+    const normalizedBuildOptions = normalizeBuildOptions(buildOptions);
+    const patternStack = Object.keys(patternDict);
+    const processPattern = (): void => {
+      const pattern = patternStack.pop()!;
+      this.set(pattern, patternDict[pattern]);
+    };
+    if (!normalizedBuildOptions.useRaf) {
+      while (patternStack.length !== 0) {
+        processPattern();
+      }
+    } else {
+      // if using raf return a promise
+      return new Promise((resolve, reject) => {
+        // process children using raf
+        const processPatternQueue = (taskStartTime: number): void => {
+          // process children for maxMillisecondsPerFrame
+          try {
+            let taskFinishTime;
+            do {
+              processPattern();
+              taskFinishTime = performance.now();
+            } while (
+              patternStack.length !== 0 &&
+              taskFinishTime - taskStartTime <
+                normalizedBuildOptions.maxMillisecondsPerFrame
+            );
+
+            // if done then return otherwise request another frame
+            if (patternStack.length !== 0) {
+              requestAnimationFrame(processPatternQueue);
+            } else {
+              resolve();
+            }
+          } catch (err) {
+            reject(err);
+          }
+        };
+        requestAnimationFrame(processPatternQueue);
+      });
+    }
+  }
+
   /**
    * Delete a pattern from aho corasick
    * @param pattern the pattern to delete
@@ -309,11 +370,7 @@ export default class AhoCorasick<T> {
   public build(buildOptions?: AhoBuildOptionsWithoutRaf): void;
   public build(buildOptions: AhoBuildOptionsWithRaf): Promise<void>;
   public build(buildOptions?: AhoBuildOptions): Promise<void> | void {
-    const normalizedBuildOptions: Full<AhoBuildOptions> = {
-      maxMillisecondsPerFrame: 3,
-      useRaf: false,
-      ...buildOptions,
-    };
+    const normalizedBuildOptions = normalizeBuildOptions(buildOptions);
 
     if (this._upToDate) {
       if (normalizedBuildOptions.useRaf) {
@@ -566,4 +623,14 @@ export default class AhoCorasick<T> {
     aho.root = serialized.root;
     return aho;
   }
+}
+
+function normalizeBuildOptions(
+  buildOptions?: AhoBuildOptions
+): Full<AhoBuildOptions> {
+  return {
+    maxMillisecondsPerFrame: 3,
+    useRaf: false,
+    ...buildOptions,
+  };
 }

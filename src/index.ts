@@ -1,6 +1,7 @@
 import AhoCorasick, {
   AhoBuildOptions,
   AhoMatch,
+  AhoPatternDict,
   AhoSerialize,
 } from "./datastructures/AhoCorasick";
 import BinarySearchTree from "./datastructures/BinarySearchTree";
@@ -15,6 +16,7 @@ export {
   AhoMatch,
   AhoSerialize,
   AhoBuildOptions,
+  AhoPatternDict,
   BinarySearchTree,
   Heap,
   LinkedList,
