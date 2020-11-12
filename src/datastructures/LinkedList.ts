@@ -9,6 +9,10 @@ class LinkedList<T> {
     this._length = 0;
   }
 
+  /**
+   * Add a value to the start of the list
+   * @param value the value to add to the list
+   */
   unshift(value: T): number {
     // create new head with next value set to prev head
     this._head = new LinkedListNode(value, undefined, this._head);
@@ -23,6 +27,9 @@ class LinkedList<T> {
     return this._length;
   }
 
+  /**
+   * Remove and Return the value from the start of the list
+   */
   shift(): T | undefined {
     if (this._head === undefined) {
       return undefined;
@@ -38,6 +45,10 @@ class LinkedList<T> {
     return value;
   }
 
+  /**
+   * Add a value to the end of the list
+   * @param value the value to add to the list
+   */
   push(value: T): number {
     this._tail = new LinkedListNode(value, this._tail, undefined);
     // set next pointer on prev tail
@@ -51,6 +62,9 @@ class LinkedList<T> {
     return this._length;
   }
 
+  /**
+   * Remove and return a value from the end of the list
+   */
   pop(): T | undefined {
     if (this._tail === undefined) {
       return undefined;
@@ -72,6 +86,14 @@ class LinkedList<T> {
 
   isEmpty(): boolean {
     return this._length === 0;
+  }
+
+  *[Symbol.iterator](): Generator<LinkedListNode<T>, void, void> {
+    let node = this._head;
+    while (node !== undefined) {
+      yield node;
+      node = node.next;
+    }
   }
 }
 
