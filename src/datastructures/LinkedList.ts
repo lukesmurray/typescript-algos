@@ -3,10 +3,17 @@ class LinkedList<T> {
   private _head: LinkedListNode<T> | undefined;
   private _length: number;
 
-  constructor() {
+  constructor(source?: Iterable<T>) {
     this._head = undefined;
     this._tail = undefined;
     this._length = 0;
+
+    // if a source is passed set the list to the order of the source
+    if (source !== undefined) {
+      for (const value of source) {
+        this.push(value);
+      }
+    }
   }
 
   /**
