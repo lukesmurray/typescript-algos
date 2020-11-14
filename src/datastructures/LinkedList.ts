@@ -16,6 +16,14 @@ class LinkedList<T> {
     }
   }
 
+  get head(): LinkedListNode<T> | undefined {
+    return this._head;
+  }
+
+  get tail(): LinkedListNode<T> | undefined {
+    return this._tail;
+  }
+
   /**
    * Add a value to the start of the list
    * @param value the value to add to the list

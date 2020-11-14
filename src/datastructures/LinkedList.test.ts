@@ -48,10 +48,17 @@ test("iteration works", () => {
 
 test("build from iterable works", () => {
   const values = Array.from(Array(100), () => Math.random());
-  const linkedList = new LinkedList<number>(values);
+  const linkedList = new LinkedList(values);
   let i = 0;
   for (const item of linkedList) {
     expect(item.value).toEqual(values[i]);
     i++;
   }
+});
+
+test("head and tail work", () => {
+  const values = Array.from(Array(100), (v, i) => i);
+  const linkedList = new LinkedList(values);
+  expect(linkedList.head?.value).toEqual(0);
+  expect(linkedList.tail?.value).toEqual(99);
 });
