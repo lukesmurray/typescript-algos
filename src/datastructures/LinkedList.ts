@@ -112,7 +112,7 @@ class LinkedList<T> {
   }
 }
 
-class LinkedListNode<T> {
+export class LinkedListNode<T> {
   value: T;
   prev: LinkedListNode<T> | undefined;
   next: LinkedListNode<T> | undefined;
