@@ -300,3 +300,15 @@ test("raf build works with set pattern dict", async () => {
     { value: "lazy dog", start: 36, end: 44, length: 8 },
   ]);
 });
+
+test("find works", () => {
+  const aho = new AhoCorasick<string>();
+  const compare = (a: string, b: string): number => a.localeCompare(b);
+  const words = ["s", "so", "soar", "soap", "soft"].sort(compare);
+  for (const word of words) {
+    aho.set(word, word);
+  }
+  aho.build();
+  expect([...aho.findValues("")].sort(compare)).toEqual(words);
+  expect([...aho.find("")].map((v) => v.value).sort(compare)).toEqual(words);
+});

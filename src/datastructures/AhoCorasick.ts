@@ -336,25 +336,23 @@ export default class AhoCorasick<T> {
     // Performing DFS from prefix
     const nodeStack: Array<AhoNode<T>> = [node];
     const keyStack: string[] = [prefix];
-    let k: string;
 
     // while there are nodes to look at
     while (nodeStack.length !== 0) {
       prefix = keyStack.pop()!;
       node = nodeStack.pop()!;
 
-      // iterate over its direct children
-      for (k in node) {
-        // if we find a sentinel its a match yay
-        if (k === SENTINEL) {
-          // @ts-ignore
-          yield { key: prefix, value: node[SENTINEL]! };
-          continue;
-        }
+      // yield value if it exists
+      if (node[SENTINEL] !== undefined) {
+        // @ts-ignore
+        yield { key: prefix, value: node[SENTINEL] };
+      }
 
+      // iterate over children
+      for (const [key] of this.nodeGetChildrenEntries(node)) {
         // add the child to our stack
-        nodeStack.push(node[k]!);
-        keyStack.push(prefix + k);
+        nodeStack.push(node[key]!);
+        keyStack.push(prefix + key);
       }
     }
   }

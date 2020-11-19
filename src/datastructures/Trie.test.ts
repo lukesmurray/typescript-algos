@@ -14,3 +14,13 @@ test("basic operations work", () => {
     { key: "hello hello", value: "world world" },
   ]);
 });
+
+test("find works", () => {
+  const trie = new Trie<string>();
+  const compare = (a: string, b: string): number => a.localeCompare(b);
+  const words = ["s", "so", "soar", "soap", "soft"].sort(compare);
+  for (const word of words) {
+    trie.set(word, word);
+  }
+  expect([...trie.findValues("")].sort(compare)).toEqual(words);
+});
