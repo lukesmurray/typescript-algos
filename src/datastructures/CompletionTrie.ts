@@ -9,14 +9,21 @@ const VALUE = Symbol("Value");
 const RANKING = Symbol("Ranking");
 const PARENT = Symbol("Parent");
 const LEAF = Symbol("Leaf");
+const CHILDREN = Symbol("Children");
+const CHILD_INDEX = Symbol("ChildIndex");
 
 interface CompletionTrieNode<T> {
   [key: string]: CompletionTrieNode<T> | undefined;
   [PARENT]?: CompletionTrieNode<T>;
   [LEAF]?: CompletionTrieNode<T>;
+  [CHILDREN]?: Array<string | typeof LEAF>;
 
+  // values used on leaves
   [VALUE]?: T;
   [RANKING]?: number;
+
+  // values used in search
+  [CHILD_INDEX]?: number;
 }
 
 export default class CompletionTrie<T> {
@@ -43,6 +50,7 @@ export default class CompletionTrie<T> {
     if (this.nodeIsLeaf(node)) {
       node[VALUE] = value;
       this.setScore(node, score);
+
       return;
     }
 
@@ -145,7 +153,7 @@ export default class CompletionTrie<T> {
       const parent = node[PARENT]!;
       delete parent[LEAF];
 
-      let lowestNode = parent;
+      let lowestChangedNode = parent;
 
       const grandparent = parent[PARENT];
       // if parent has one child place child on grandparent and remove parent
@@ -157,11 +165,11 @@ export default class CompletionTrie<T> {
         for (const child in parent) {
           grandparent[parentEdge + child] = parent[child];
           delete grandparent[parentEdge];
-          lowestNode = grandparent[parentEdge + child]!;
+          lowestChangedNode = grandparent[parentEdge + child]!;
         }
       }
 
-      this.setScore(lowestNode, this.nodeMinValue(lowestNode));
+      this.setScore(lowestChangedNode, this.nodeMinValue(lowestChangedNode));
 
       this._size--;
       return true;
@@ -210,11 +218,12 @@ export default class CompletionTrie<T> {
 
   public *topK(prefix: string, k?: number): Generator<T> {
     k = k ?? Number.POSITIVE_INFINITY;
-    let { node } = this.traverseForKey(prefix);
+    let { node, nodeEdge, parentEdge } = this.traverseForKey(prefix);
     // we don't want to start with a leaf just in case there are other
     // children
     if (this.nodeIsLeaf(node)) {
       node = node[PARENT]!;
+      nodeEdge = parentEdge;
     }
 
     const compareFn: CompareFn<CompletionTrieNode<T>> = (a, b) => {
@@ -228,6 +237,12 @@ export default class CompletionTrie<T> {
     };
 
     const heap = new Heap<CompletionTrieNode<T>>(compareFn);
+    // assign the first node a child index
+    if (node[PARENT] !== undefined) {
+      node[CHILD_INDEX] = node[PARENT]![CHILDREN]!.indexOf(nodeEdge!);
+    } else {
+      node[CHILD_INDEX] = undefined;
+    }
     heap.add(node);
 
     let found = 0;
@@ -237,14 +252,46 @@ export default class CompletionTrie<T> {
         yield node[VALUE]!;
         found++;
       } else {
-        for (const child in node) {
-          heap.add(node[child]!);
-        }
-        if (LEAF in node) {
-          heap.add(node[LEAF]!);
+        // add the first child to the queue
+        const firstChild = this.nodeFirstChild(node);
+        if (firstChild !== undefined) {
+          heap.add(firstChild);
         }
       }
+      // add the next sibling to the queue
+      const sibling = this.nodeNextSibling(node);
+      if (sibling !== undefined) {
+        heap.add(sibling);
+      }
     }
+  }
+
+  private nodeFirstChild(
+    node: CompletionTrieNode<T>
+  ): CompletionTrieNode<T> | undefined {
+    // add the first child to the queue
+    if (node[CHILDREN] !== undefined && node[CHILDREN]!.length > 0) {
+      // give the first child a child index
+      node[node[CHILDREN]![0]]![CHILD_INDEX] = 0;
+      return node[node[CHILDREN]![0]];
+    }
+    return undefined;
+  }
+
+  private nodeNextSibling(
+    node: CompletionTrieNode<T>
+  ): CompletionTrieNode<T> | undefined {
+    if (node[CHILD_INDEX] === undefined) {
+      return undefined;
+    }
+    const parent = node[PARENT];
+    const siblingChildIndex = node[CHILD_INDEX]! + 1;
+    if (parent![CHILDREN]!.length > siblingChildIndex) {
+      const sibling = parent![parent![CHILDREN]![siblingChildIndex]]!;
+      sibling[CHILD_INDEX] = siblingChildIndex;
+      return sibling;
+    }
+    return undefined;
   }
 
   private nodeIsLeaf(node: CompletionTrieNode<T>): boolean {
@@ -275,13 +322,16 @@ export default class CompletionTrie<T> {
     let keySuffix = key;
     let nodeEdge: string | undefined | typeof LEAF;
     let parentEdge: string | undefined;
+    let charactersFound: number = 0;
 
     // traverse until value is found or impossible to continue
-    while (keySuffix.length !== 0) {
+    while (true) {
       // find the next edge to explore
       let nextEdge: string | undefined;
       for (const edge in node) {
-        if (keySuffix.startsWith(edge)) {
+        if (
+          key.slice(charactersFound, charactersFound + edge.length) === edge
+        ) {
           nextEdge = edge;
           break;
         }
@@ -292,12 +342,15 @@ export default class CompletionTrie<T> {
         nodeEdge = nextEdge;
         node = node[nextEdge] as CompletionTrieNode<T>;
         keySuffix = keySuffix.slice(nextEdge.length);
-        keyPrefix += nextEdge;
+        charactersFound += nextEdge.length;
       } else {
         // otherwise terminate the search
         break;
       }
     }
+
+    keySuffix = key.slice(charactersFound);
+    keyPrefix = key.slice(0, charactersFound);
 
     if (keySuffix.length === 0 && node[LEAF] !== undefined) {
       node = node[LEAF]!;
@@ -318,6 +371,11 @@ export default class CompletionTrie<T> {
     // set the score on the node
     node[RANKING] = score;
 
+    // if its not a leaf node then reset the children cause the score changed
+    if (!this.nodeIsLeaf(node)) {
+      node[CHILDREN] = this.nodeSortedChildren(node);
+    }
+
     let newMin = score;
 
     // update the parents
@@ -330,6 +388,7 @@ export default class CompletionTrie<T> {
       // that is smaller or equal to the new min
       if (currentMin === undefined || newMin > currentMin) {
         while (parent !== undefined) {
+          parent[CHILDREN] = this.nodeSortedChildren(parent);
           if (parent[RANKING] === undefined || newMin < parent[RANKING]!) {
             parent[RANKING] = newMin;
             parent = parent[PARENT];
@@ -339,8 +398,10 @@ export default class CompletionTrie<T> {
         }
         // if new min is equal to current min then do nothing
       } else if (newMin === currentMin) {
+        parent[CHILDREN] = this.nodeSortedChildren(parent);
         parent = undefined;
       } else {
+        parent[CHILDREN] = this.nodeSortedChildren(parent);
         // the new min is larger than the parent min, two options
         // 1. we removed or replaced the current min child
         // 2. our new value is greater than the current min child
@@ -356,6 +417,25 @@ export default class CompletionTrie<T> {
         }
       }
     }
+  }
+
+  private nodeSortedChildren(
+    node: CompletionTrieNode<T>
+  ): Array<string | typeof LEAF> {
+    const keys: Array<string | typeof LEAF> = Object.keys(node);
+    if (LEAF in node) {
+      keys.push(LEAF);
+    }
+    keys.sort((a, b) => {
+      if (node[a]![RANKING]! > node[b]![RANKING]!) {
+        return 1;
+      } else if (node[a]![RANKING]! < node[b]![RANKING]!) {
+        return -1;
+      } else {
+        return 0;
+      }
+    });
+    return keys;
   }
 
   private nodeMinValue(node: CompletionTrieNode<T>): number {

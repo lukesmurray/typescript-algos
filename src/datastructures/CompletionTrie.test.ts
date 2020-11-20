@@ -25,7 +25,7 @@ test("find works", () => {
   expect([...trie.findValues("")].sort(compare)).toEqual(words);
 });
 
-test("find works", () => {
+test("top k works easy", () => {
   const trie = new CompletionTrie<string>();
   const words = ["s", "so", "soar", "soap", "soft", "softer"];
   words.forEach((word, i) => {
@@ -34,7 +34,7 @@ test("find works", () => {
   expect([...trie.topK("s")]).toEqual(words);
 });
 
-test("find works", () => {
+test("top k works more challenging", () => {
   const trie = new CompletionTrie<string>();
   const words = [
     "s",
@@ -56,7 +56,7 @@ test("find works", () => {
   expect([...trie.topK("s")]).toEqual(words);
 });
 
-test("find works", () => {
+test("top k works most challenging", () => {
   const trie = new CompletionTrie<string>();
   const words = [
     "s",
