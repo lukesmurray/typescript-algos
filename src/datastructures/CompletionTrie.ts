@@ -3,6 +3,7 @@
 import longestCommonPrefix from "../util/longestCommonPrefix";
 import objectHasOneProperty from "../util/objectHasOneProperty";
 import Heap from "./Heap";
+import { CompareFn } from "./Util";
 
 const VALUE = Symbol("Value");
 const RANKING = Symbol("Ranking");
@@ -160,7 +161,7 @@ export default class CompletionTrie<T> {
         }
       }
 
-      this.setScore(lowestNode, this.nodeMaxValue(lowestNode));
+      this.setScore(lowestNode, this.nodeMinValue(lowestNode));
 
       this._size--;
       return true;
@@ -215,15 +216,18 @@ export default class CompletionTrie<T> {
     if (this.nodeIsLeaf(node)) {
       node = node[PARENT]!;
     }
-    const heap = new Heap<CompletionTrieNode<T>>((a, b) => {
-      if (a[RANKING]! > b[RANKING]!) {
+
+    const compareFn: CompareFn<CompletionTrieNode<T>> = (a, b) => {
+      if (a[RANKING]! < b[RANKING]!) {
         return -1;
-      } else if (a[RANKING]! < b[RANKING]!) {
+      } else if (a[RANKING]! > b[RANKING]!) {
         return 1;
       } else {
         return 0;
       }
-    });
+    };
+
+    const heap = new Heap<CompletionTrieNode<T>>(compareFn);
     heap.add(node);
 
     let found = 0;
@@ -314,61 +318,59 @@ export default class CompletionTrie<T> {
     // set the score on the node
     node[RANKING] = score;
 
-    let newMax = score;
+    let newMin = score;
 
     // update the parents
     let parent = node[PARENT];
     while (parent !== undefined) {
-      const currentMax = parent[RANKING];
+      const currentMin = parent[RANKING];
 
-      // if the new max is larger than the current max
-      // simply increment all the parent maxes until we reach a parent
-      // that is larger or equal to the new max
-      if (currentMax === undefined || newMax > currentMax) {
+      // if the new min is smaller than the current min
+      // simply decrement all the parents until we reach a parent
+      // that is smaller or equal to the new min
+      if (currentMin === undefined || newMin > currentMin) {
         while (parent !== undefined) {
-          if (parent[RANKING] === undefined || newMax > parent[RANKING]!) {
-            parent[RANKING] = newMax;
+          if (parent[RANKING] === undefined || newMin < parent[RANKING]!) {
+            parent[RANKING] = newMin;
             parent = parent[PARENT];
           } else {
             parent = undefined;
           }
         }
-        // if new max is equal to current max then do nothing
-      } else if (newMax === currentMax) {
+        // if new min is equal to current min then do nothing
+      } else if (newMin === currentMin) {
         parent = undefined;
       } else {
-        // the new max is smaller than the parent max, two options
-        // 1. we removed the current max
-        // 2. our new value is less than the current max
+        // the new min is larger than the parent min, two options
+        // 1. we removed or replaced the current min child
+        // 2. our new value is greater than the current min child
 
-        newMax = this.nodeMaxValue(parent);
+        newMin = this.nodeMinValue(parent);
         // handle option 2, parent max stays the same
-        if (newMax === currentMax) {
+        if (newMin === currentMin) {
           parent = undefined;
         } else {
-          // handle option1, decrement the parent max and iterate up the tree
-          // decrement the parent max
-          parent[RANKING] = newMax;
-          // iterate up the tree
+          // handle option1, increment the parent min and iterate up the tree
+          parent[RANKING] = newMin;
           parent = parent[PARENT];
         }
       }
     }
   }
 
-  private nodeMaxValue(node: CompletionTrieNode<T>): number {
-    let newMax = Number.NEGATIVE_INFINITY;
+  private nodeMinValue(node: CompletionTrieNode<T>): number {
+    let newMin = Number.POSITIVE_INFINITY;
     for (const child in node) {
       if (
         node[child]![RANKING] !== undefined &&
-        node[child]![RANKING]! > newMax
+        node[child]![RANKING]! < newMin
       ) {
-        newMax = node[child]![RANKING]!;
+        newMin = node[child]![RANKING]!;
       }
     }
-    if (node[LEAF]?.[RANKING] !== undefined && node[LEAF]![RANKING]! > newMax) {
-      newMax = node[LEAF]![RANKING]!;
+    if (node[LEAF]?.[RANKING] !== undefined && node[LEAF]![RANKING]! < newMin) {
+      newMin = node[LEAF]![RANKING]!;
     }
-    return newMax;
+    return newMin;
   }
 }

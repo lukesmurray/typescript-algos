@@ -31,7 +31,7 @@ test("find works", () => {
   words.forEach((word, i) => {
     trie.set(word, word, i);
   });
-  expect([...trie.topK("s")]).toEqual(words.reverse());
+  expect([...trie.topK("s")]).toEqual(words);
 });
 
 test("find works", () => {
@@ -53,7 +53,7 @@ test("find works", () => {
   words.forEach((word, i) => {
     trie.set(word, word, i);
   });
-  expect([...trie.topK("s")]).toEqual(words.reverse());
+  expect([...trie.topK("s")]).toEqual(words);
 });
 
 test("find works", () => {
@@ -75,5 +75,5 @@ test("find works", () => {
   words.forEach((word, i) => {
     trie.set(word, word, i);
   });
-  expect([...trie.topK("s")]).toEqual(words.reverse());
+  expect([...trie.topK("s")]).toEqual(words);
 });
