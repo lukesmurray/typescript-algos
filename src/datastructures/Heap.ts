@@ -59,27 +59,30 @@ class Heap<T> {
     return this._data.length;
   }
 
+  empty(): boolean {
+    return this._data.length === 0;
+  }
+
   private static heapify<T>(heap: Heap<T>, i: number): void {
     // assume left is a valid heap
     const left = Heap.left(i);
     // assume right is a valid heap
     const right = Heap.right(i);
     let newRoot = -1;
-    // compare left with the current
-    const compareLeftWithI = heap._compareFn(heap._data[left], heap._data[i]);
     // if left is smaller then make left the new root
-    if (left <= heap.length && compareLeftWithI < 0) {
+    if (
+      left < heap.length &&
+      heap._compareFn(heap._data[left], heap._data[i]) < 0
+    ) {
       newRoot = left;
     } else {
       newRoot = i;
     }
-    // compare right with new root
-    const compareRightWithNewRoot = heap._compareFn(
-      heap._data[right],
-      heap._data[newRoot]
-    );
     // if right is smaller make right the new root
-    if (right <= heap.length && compareRightWithNewRoot < 0) {
+    if (
+      right < heap.length &&
+      heap._compareFn(heap._data[right], heap._data[newRoot]) < 0
+    ) {
       newRoot = right;
     }
     // if the root has changed then swap i with the new root
