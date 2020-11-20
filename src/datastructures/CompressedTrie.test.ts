@@ -1,7 +1,7 @@
-import PatriciaTrie from "./PatriciaTrie";
+import CompressedTrie from "./CompressedTrie";
 
 test("basic operations work", () => {
-  const trie = new PatriciaTrie<string>();
+  const trie = new CompressedTrie<string>();
   trie.set("hello", "world");
   expect(trie.get("hello")).toBe("world");
   expect(trie.size).toBe(1);
@@ -16,7 +16,7 @@ test("basic operations work", () => {
 });
 
 test("find works", () => {
-  const trie = new PatriciaTrie<string>();
+  const trie = new CompressedTrie<string>();
   const compare = (a: string, b: string): number => a.localeCompare(b);
   const words = ["s", "so", "soar", "soap", "soft"].sort(compare);
   for (const word of words) {

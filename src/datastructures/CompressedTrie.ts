@@ -6,14 +6,14 @@ import objectIsEmpty from "../util/objectIsEmpty";
 
 const SENTINEL = Symbol("SENTINEL");
 
-interface PatriciaTrieNode<T> {
-  [key: string]: PatriciaTrieNode<T> | undefined;
+interface CompressedTrieNode<T> {
+  [key: string]: CompressedTrieNode<T> | undefined;
   [SENTINEL]?: T;
 }
 
-export default class PatriciaTrie<T> {
+export default class CompressedTrie<T> {
   private _size: number;
-  private root: PatriciaTrieNode<T>;
+  private root: CompressedTrieNode<T>;
   constructor() {
     this._size = 0;
     this.root = {};
@@ -152,7 +152,7 @@ export default class PatriciaTrie<T> {
     let { node, keyPrefix } = this.traverseForKey(prefix);
 
     // Performing DFS from prefix
-    const nodeStack: Array<PatriciaTrieNode<T>> = [node];
+    const nodeStack: Array<CompressedTrieNode<T>> = [node];
     const keyStack: string[] = [keyPrefix];
     let edge: string;
 
@@ -182,7 +182,7 @@ export default class PatriciaTrie<T> {
     }
   }
 
-  private nodeContainsValue(node: PatriciaTrieNode<T>): boolean {
+  private nodeContainsValue(node: CompressedTrieNode<T>): boolean {
     return SENTINEL in node;
   }
 
@@ -195,23 +195,23 @@ export default class PatriciaTrie<T> {
     key: string
   ): {
     // the traversed node (as far as we could get without falling off or following a bad node)
-    node: PatriciaTrieNode<T>;
+    node: CompressedTrieNode<T>;
     // the remaining suffix of the key still left to traverse
     keySuffix: string;
     // the prefix of the key used so far
     keyPrefix: string;
     // the parent of the node
-    parent?: PatriciaTrieNode<T>;
+    parent?: CompressedTrieNode<T>;
     // the grandparent of the node
-    grandparent?: PatriciaTrieNode<T>;
+    grandparent?: CompressedTrieNode<T>;
     // the edge used to traverse from the parent to the node
     nodeEdge?: string;
     // the edge used to traverse from the grandparent to the node
     parentEdge?: string;
   } {
-    let node: PatriciaTrieNode<T> = this.root;
-    let parent: PatriciaTrieNode<T> | undefined;
-    let grandparent: PatriciaTrieNode<T> | undefined;
+    let node: CompressedTrieNode<T> = this.root;
+    let parent: CompressedTrieNode<T> | undefined;
+    let grandparent: CompressedTrieNode<T> | undefined;
     let keyPrefix = "";
     let keySuffix = key;
     let nodeEdge: string | undefined;
@@ -233,7 +233,7 @@ export default class PatriciaTrie<T> {
         parent = node;
         parentEdge = nodeEdge;
         nodeEdge = nextEdge;
-        node = node[nextEdge] as PatriciaTrieNode<T>;
+        node = node[nextEdge] as CompressedTrieNode<T>;
         keySuffix = keySuffix.slice(nextEdge.length);
         keyPrefix += nextEdge;
       } else {
