@@ -12,7 +12,7 @@ const LEAF = Symbol("Leaf");
 const CHILDREN = Symbol("Children");
 const CHILD_INDEX = Symbol("ChildIndex");
 
-interface CompletionTrieNode<T> {
+export interface CompletionTrieNode<T> {
   [key: string]: CompletionTrieNode<T> | undefined;
   [PARENT]?: CompletionTrieNode<T>;
   [LEAF]?: CompletionTrieNode<T>;
