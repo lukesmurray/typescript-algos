@@ -50,7 +50,6 @@ export default class CompletionTrie<T> {
     if (this.nodeIsLeaf(node)) {
       node[VALUE] = value;
       this.setScore(node, score);
-
       return;
     }
 
@@ -65,17 +64,18 @@ export default class CompletionTrie<T> {
     }
 
     // check to see if any edge has shares a prefix with the key
+    let commonPrefix: string | undefined;
     let nextEdge: string | undefined;
     for (const edge in node) {
-      if (keySuffix.startsWith(edge)) {
+      commonPrefix = longestCommonPrefix(keySuffix, edge);
+      if (commonPrefix.length > 0) {
         nextEdge = edge;
         break;
       }
     }
 
     // if some edge shares a prefix
-    if (nextEdge !== undefined) {
-      const commonPrefix = longestCommonPrefix(nextEdge, keySuffix);
+    if (nextEdge !== undefined && commonPrefix !== undefined) {
       const nextSuffix = nextEdge.slice(commonPrefix.length);
       keySuffix = keySuffix.slice(commonPrefix.length);
       // create a node for the common prefix
@@ -88,18 +88,30 @@ export default class CompletionTrie<T> {
       node[commonPrefix]![nextSuffix] = node[nextEdge];
       // set the parent of the edge with the shared prefix
       node[commonPrefix]![nextSuffix]![PARENT] = node[commonPrefix];
-      // add the new string to the common prefix node
-      node[commonPrefix]![keySuffix] = {
-        [PARENT]: node[commonPrefix],
-      };
-      // set the leaf
-      node[commonPrefix]![keySuffix]![LEAF] = {
-        [PARENT]: node[commonPrefix]![keySuffix],
-        [VALUE]: value,
-      };
-      this.setScore(node[commonPrefix]![keySuffix]![LEAF]!, score);
+      let leaf: CompletionTrieNode<T>;
+      if (keySuffix.length !== 0) {
+        // add the new string to the common prefix node
+        node[commonPrefix]![keySuffix] = {
+          [PARENT]: node[commonPrefix],
+        };
+        leaf = {
+          [PARENT]: node[commonPrefix]![keySuffix],
+          [VALUE]: value,
+        };
+        // set the leaf
+        node[commonPrefix]![keySuffix]![LEAF] = leaf;
+      } else {
+        leaf = {
+          [PARENT]: node[commonPrefix],
+          [VALUE]: value,
+        };
+        // add the new string to the common prefix node
+        node[commonPrefix]![LEAF] = leaf;
+      }
       // delete the old edge
       delete node[nextEdge];
+      this.setScore(leaf, score);
+      node[CHILDREN] = this.nodeSortedChildren(node);
     } else {
       // no common prefix so add the as a new string
       node[keySuffix] = { [PARENT]: node };
@@ -218,12 +230,17 @@ export default class CompletionTrie<T> {
 
   public *topK(prefix: string, k?: number): Generator<T> {
     k = k ?? Number.POSITIVE_INFINITY;
-    let { node, nodeEdge, parentEdge } = this.traverseForKey(prefix);
+    let { node, keySuffix } = this.traverseForKey(prefix);
+
+    // if we couldn't complete the prefix then we're done
+    if (keySuffix.length > 0) {
+      return;
+    }
+
     // we don't want to start with a leaf just in case there are other
     // children
     if (this.nodeIsLeaf(node)) {
       node = node[PARENT]!;
-      nodeEdge = parentEdge;
     }
 
     const compareFn: CompareFn<CompletionTrieNode<T>> = (a, b) => {
@@ -235,14 +252,9 @@ export default class CompletionTrie<T> {
         return 0;
       }
     };
-
     const heap = new Heap<CompletionTrieNode<T>>(compareFn);
-    // assign the first node a child index
-    if (node[PARENT] !== undefined) {
-      node[CHILD_INDEX] = node[PARENT]![CHILDREN]!.indexOf(nodeEdge!);
-    } else {
-      node[CHILD_INDEX] = undefined;
-    }
+
+    node = this.nodeFirstChild(node)!;
     heap.add(node);
 
     let found = 0;
@@ -319,13 +331,13 @@ export default class CompletionTrie<T> {
   } {
     let node: CompletionTrieNode<T> = this.root;
     let keyPrefix = "";
-    let keySuffix = key;
+    let keySuffix = "";
     let nodeEdge: string | undefined | typeof LEAF;
     let parentEdge: string | undefined;
     let charactersFound: number = 0;
 
     // traverse until value is found or impossible to continue
-    while (true) {
+    while (charactersFound < key.length) {
       // find the next edge to explore
       let nextEdge: string | undefined;
       for (const edge in node) {
@@ -341,7 +353,6 @@ export default class CompletionTrie<T> {
         parentEdge = nodeEdge as string;
         nodeEdge = nextEdge;
         node = node[nextEdge] as CompletionTrieNode<T>;
-        keySuffix = keySuffix.slice(nextEdge.length);
         charactersFound += nextEdge.length;
       } else {
         // otherwise terminate the search
@@ -386,7 +397,7 @@ export default class CompletionTrie<T> {
       // if the new min is smaller than the current min
       // simply decrement all the parents until we reach a parent
       // that is smaller or equal to the new min
-      if (currentMin === undefined || newMin > currentMin) {
+      if (currentMin === undefined || newMin < currentMin) {
         while (parent !== undefined) {
           parent[CHILDREN] = this.nodeSortedChildren(parent);
           if (parent[RANKING] === undefined || newMin < parent[RANKING]!) {
