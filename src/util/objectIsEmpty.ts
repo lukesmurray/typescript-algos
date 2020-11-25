@@ -1,5 +1,5 @@
 const objectIsEmpty = <T extends Object>(obj: T): boolean => {
-  for (const prop in obj) {
+  for (const _ in obj) {
     return false;
   }
   return true;

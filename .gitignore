@@ -1,4 +1,4 @@
-dist
+build
 tsconfig.tsbuildinfo
 node_modules
 coverage
