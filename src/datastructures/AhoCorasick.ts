@@ -95,8 +95,7 @@ export default class AhoCorasick<T> {
     this._upToDate = false;
     this._size = 0;
     this.root = {
-      // @ts-ignore
-      [DEPTH]: 0,
+      [DEPTH]: 0 as any,
     };
   }
 
@@ -139,8 +138,7 @@ export default class AhoCorasick<T> {
     }
 
     // otherwise return the value
-    // @ts-ignore
-    return node[SENTINEL];
+    return node[SENTINEL] as any;
   }
 
   /**
@@ -183,8 +181,7 @@ export default class AhoCorasick<T> {
         node[token] ??
         (node[token] = {
           [PARENT]: parent,
-          // @ts-ignore
-          [DEPTH]: ((parent[DEPTH] as number) + 1) as any,
+          [DEPTH]: (((parent[DEPTH] as unknown) as number) + 1) as any,
         });
     }
 
@@ -193,8 +190,7 @@ export default class AhoCorasick<T> {
     }
 
     // set the sentinel to be the value
-    // @ts-ignore
-    node[SENTINEL] = value;
+    node[SENTINEL] = value as any;
     this._upToDate = false;
   }
 
@@ -344,8 +340,7 @@ export default class AhoCorasick<T> {
 
       // yield value if it exists
       if (node[SENTINEL] !== undefined) {
-        // @ts-ignore
-        yield { key: prefix, value: node[SENTINEL] };
+        yield { key: prefix, value: node[SENTINEL] as any };
       }
 
       // iterate over children
@@ -537,8 +532,7 @@ export default class AhoCorasick<T> {
       // if the current node is a pattern output the pattern
       if (node[SENTINEL] !== undefined) {
         const match: AhoMatch<T> = {
-          // @ts-ignore
-          value: node[SENTINEL]!,
+          value: node[SENTINEL]! as any,
           start,
           end: i + 1,
           length: i + 1 - start,
@@ -552,8 +546,7 @@ export default class AhoCorasick<T> {
       outputStart = start + (depth - outputDepth);
       while (output !== undefined) {
         const match: AhoMatch<T> = {
-          // @ts-ignore
-          value: output[SENTINEL]!,
+          value: output[SENTINEL]! as any,
           start: outputStart,
           end: i + 1,
           length: i + 1 - outputStart,

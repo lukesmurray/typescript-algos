@@ -1,4 +1,4 @@
-import AhoCorasick from "./AhoCorasick";
+import AhoCorasick, { AhoPatternDict } from "./AhoCorasick";
 
 test("basic aho operations work", () => {
   const patterns = ["i", "in", "tin", "sting"];
@@ -96,7 +96,6 @@ test("degenerate patterns work", () => {
 
 test("example animals works", () => {
   const aho = new AhoCorasick<string>();
-  // @ts-ignore
   for (const word of [
     "the",
     "the quick",
@@ -125,7 +124,6 @@ test("example animals works", () => {
 
 test("example leftmost animals works", () => {
   const aho = new AhoCorasick<string>();
-  // @ts-ignore
   for (const word of [
     "the",
     "the quick",
@@ -151,7 +149,6 @@ test("example leftmost animals works", () => {
 
 test("serialize animals works", () => {
   const aho = new AhoCorasick<string>();
-  // @ts-ignore
   for (const word of [
     "the",
     "the quick",
@@ -187,7 +184,6 @@ test("serialize animals works", () => {
 
 test("raf build works", async () => {
   const aho = new AhoCorasick<string>();
-  // @ts-ignore
   for (const word of [
     "the",
     "the quick",
@@ -225,7 +221,6 @@ test("raf build works", async () => {
 
 test("raf build works without raf", async () => {
   const aho = new AhoCorasick<string>();
-  // @ts-ignore
   for (const word of [
     "the",
     "the quick",
@@ -263,7 +258,6 @@ test("raf build works without raf", async () => {
 
 test("raf build works with set pattern dict", async () => {
   const aho = new AhoCorasick<string>();
-  // @ts-ignore
   const patternDict: AhoPatternDict<string> = {};
   for (const word of [
     "the",

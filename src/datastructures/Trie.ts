@@ -39,8 +39,7 @@ export default class Trie<T> {
     }
 
     // set the sentinel to be the value
-    // @ts-ignore
-    node[SENTINEL] = value;
+    node[SENTINEL] = value as any;
   }
 
   /**
@@ -68,8 +67,7 @@ export default class Trie<T> {
     }
 
     // otherwise return the value
-    // @ts-ignore
-    return node[SENTINEL];
+    return node[SENTINEL] as any;
   }
 
   /**
@@ -184,8 +182,7 @@ export default class Trie<T> {
       for (k in node) {
         // if we find a sentinel its a match yay
         if (k === SENTINEL) {
-          // @ts-ignore
-          yield { key: prefix, value: node[SENTINEL]! };
+          yield { key: prefix, value: node[SENTINEL] as any };
           continue;
         }
 
