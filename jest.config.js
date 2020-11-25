@@ -3,7 +3,7 @@
 const config = {
   globals: {
     "ts-jest": {
-      tsConfig: "./tsconfig.json",
+      tsconfig: "./tsconfig.json",
     },
   },
   preset: "ts-jest",

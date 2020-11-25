@@ -57,7 +57,7 @@ test("build from iterable works", () => {
 });
 
 test("head and tail work", () => {
-  const values = Array.from(Array(100), (v, i) => i);
+  const values = Array.from(Array(100), (_, i) => i);
   const linkedList = new LinkedList(values);
   expect(linkedList.head?.value).toEqual(0);
   expect(linkedList.tail?.value).toEqual(99);

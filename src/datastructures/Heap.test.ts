@@ -1,7 +1,7 @@
 import Heap from "./Heap";
 
 test("should find min correctly", () => {
-  const values = Array.from(Array(100), (v, i) => i).reverse();
+  const values = Array.from(Array(100), (_, i) => i).reverse();
   const heap = new Heap<number>();
   values.forEach((v, i) => {
     expect(heap.add(v)).toEqual(i + 1);

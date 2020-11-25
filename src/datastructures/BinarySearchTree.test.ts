@@ -42,8 +42,8 @@ test("binary tree works", () => {
 
 test("binary tree insert and remove", () => {
   for (const values of [
-    Array.from(Array(100), (v, i) => i).reverse(),
-    Array.from(Array(100), (v, i) => i),
+    Array.from(Array(100), (_, i) => i).reverse(),
+    Array.from(Array(100), (_, i) => i),
   ]) {
     const tree = new BinarySearchTree<number>();
     // insert all values and make sure they all work
