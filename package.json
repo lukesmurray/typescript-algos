@@ -1,6 +1,6 @@
 {
   "name": "typescript-algos",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "description": "",
   "main": "build/main/index.js",
   "types": "build/main/index.d.ts",
