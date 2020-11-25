@@ -2,18 +2,23 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import longestCommonPrefix from "../util/longestCommonPrefix";
 import objectHasOneProperty from "../util/objectHasOneProperty";
-import objectIsEmpty from "../util/objectIsEmpty";
 
-const SENTINEL = Symbol("SENTINEL");
+const VALUE = Symbol("Value");
+const PARENT = Symbol("Parent");
+const LEAF = Symbol("Leaf");
 
-interface CompressedTrieNode<T> {
-  [key: string]: CompressedTrieNode<T> | undefined;
-  [SENTINEL]?: T;
+export interface CompletionTrieNode<T> {
+  [key: string]: CompletionTrieNode<T> | undefined;
+  [PARENT]?: CompletionTrieNode<T>;
+  [LEAF]?: CompletionTrieNode<T>;
+
+  // values used on leaves
+  [VALUE]?: T;
 }
 
-export default class CompressedTrie<T> {
+export default class CompletionTrie<T> {
   private _size: number;
-  private root: CompressedTrieNode<T>;
+  private root: CompletionTrieNode<T>;
   constructor() {
     this._size = 0;
     this.root = {};
@@ -31,37 +36,74 @@ export default class CompressedTrie<T> {
   public set(key: string, value: T): void {
     let { node, keySuffix } = this.traverseForKey(key);
 
-    // edge case we got to a node we already saved
+    // hit a leaf
+    if (this.nodeIsLeaf(node)) {
+      node[VALUE] = value;
+      return;
+    }
+
+    // add a leaf to an existing node
     if (keySuffix.length === 0) {
-      node[SENTINEL] = value;
+      node[LEAF] = {
+        [VALUE]: value,
+        [PARENT]: node,
+      };
       return;
     }
 
     // check to see if any edge has shares a prefix with the key
+    let commonPrefix: string | undefined;
     let nextEdge: string | undefined;
     for (const edge in node) {
-      if (keySuffix.startsWith(edge)) {
+      commonPrefix = longestCommonPrefix(keySuffix, edge);
+      if (commonPrefix.length > 0) {
         nextEdge = edge;
         break;
       }
     }
 
     // if some edge shares a prefix
-    if (nextEdge !== undefined) {
-      const commonPrefix = longestCommonPrefix(nextEdge, keySuffix);
+    if (nextEdge !== undefined && commonPrefix !== undefined) {
       const nextSuffix = nextEdge.slice(commonPrefix.length);
       keySuffix = keySuffix.slice(commonPrefix.length);
       // create a node for the common prefix
-      node[commonPrefix] = {};
-      // add the shared edge back
+      // the score is the score of it's only child nextEdge
+      node[commonPrefix] = {
+        [PARENT]: node,
+      };
+      // add the edge with the shared prefix back
       node[commonPrefix]![nextSuffix] = node[nextEdge];
-      // add the new value
-      node[commonPrefix]![keySuffix] = { [SENTINEL]: value };
+      // set the parent of the edge with the shared prefix
+      node[commonPrefix]![nextSuffix]![PARENT] = node[commonPrefix];
+      let leaf: CompletionTrieNode<T>;
+      if (keySuffix.length !== 0) {
+        // add the new string to the common prefix node
+        node[commonPrefix]![keySuffix] = {
+          [PARENT]: node[commonPrefix],
+        };
+        leaf = {
+          [PARENT]: node[commonPrefix]![keySuffix],
+          [VALUE]: value,
+        };
+        // set the leaf
+        node[commonPrefix]![keySuffix]![LEAF] = leaf;
+      } else {
+        leaf = {
+          [PARENT]: node[commonPrefix],
+          [VALUE]: value,
+        };
+        // add the new string to the common prefix node
+        node[commonPrefix]![LEAF] = leaf;
+      }
       // delete the old edge
       delete node[nextEdge];
     } else {
-      // no common prefix so add the value to the node
-      node[keySuffix] = { [SENTINEL]: value };
+      // no common prefix so add the as a new string
+      node[keySuffix] = { [PARENT]: node };
+      node[keySuffix]![LEAF]! = {
+        [VALUE]: value,
+        [PARENT]: node[keySuffix],
+      };
     }
     this._size++;
   }
@@ -72,9 +114,9 @@ export default class CompressedTrie<T> {
    * @param key the key to get from the trie
    */
   public get(key: string): T | undefined {
-    const { node, keySuffix } = this.traverseForKey(key);
-    if (keySuffix.length === 0 && this.nodeContainsValue(node)) {
-      return node[SENTINEL];
+    const { node } = this.traverseForKey(key);
+    if (this.nodeIsLeaf(node)) {
+      return node[VALUE];
     }
     return undefined;
   }
@@ -84,8 +126,8 @@ export default class CompressedTrie<T> {
    * @param key the key to check in the trie
    */
   public has(key: string): boolean {
-    const { node, keySuffix } = this.traverseForKey(key);
-    return keySuffix.length === 0 && this.nodeContainsValue(node);
+    const { node } = this.traverseForKey(key);
+    return this.nodeIsLeaf(node);
   }
 
   /**
@@ -101,42 +143,25 @@ export default class CompressedTrie<T> {
    * @param key the key to delete in the trie
    */
   public delete(key: string): boolean {
-    const {
-      node,
-      keySuffix,
-      nodeEdge,
-      parent,
-      grandparent,
-      parentEdge,
-    } = this.traverseForKey(key);
+    const { node, parentEdge } = this.traverseForKey(key);
     // if we found the node
-    if (keySuffix.length !== 0 && this.nodeContainsValue(node)) {
-      // remove the key
-      delete node[SENTINEL];
+    if (this.nodeIsLeaf(node)) {
+      const parent = node[PARENT]!;
+      delete parent[LEAF];
 
-      // if the node is empty delete it
+      const grandparent = parent[PARENT];
+      // if parent has one child place child on grandparent and remove parent
       if (
-        objectIsEmpty(node) &&
-        parent !== undefined &&
-        nodeEdge !== undefined
+        objectHasOneProperty(parent) &&
+        grandparent !== undefined &&
+        parentEdge !== undefined
       ) {
-        // delete the node from the parent
-        delete parent[nodeEdge];
-
-        // if the parent has one child and does not contain a value
-        // then remove the parent and attach the child to the grandparent
-        if (
-          objectHasOneProperty(parent) &&
-          grandparent !== undefined &&
-          parentEdge !== undefined &&
-          !this.nodeContainsValue(parent)
-        ) {
-          for (const edge in parent) {
-            grandparent[parentEdge + edge] = parent[edge];
-            delete grandparent[parentEdge];
-          }
+        for (const child in parent) {
+          grandparent[parentEdge + child] = parent[child];
+          delete grandparent[parentEdge];
         }
       }
+
       this._size--;
       return true;
     } else {
@@ -148,42 +173,30 @@ export default class CompressedTrie<T> {
    * Find all values in the trie which start with the prefix
    * @param prefix the prefix to search for in the trie.
    */
-  public *find(prefix: string): Generator<{ key: string; value: T }> {
-    let { node, keyPrefix } = this.traverseForKey(prefix);
+  public *find(prefix: string): Generator<T> {
+    let { node } = this.traverseForKey(prefix);
 
     // Performing DFS from prefix
-    const nodeStack: Array<CompressedTrieNode<T>> = [node];
-    const keyStack: string[] = [keyPrefix];
+    const nodeStack: Array<CompletionTrieNode<T>> = [node];
     let edge: string;
 
     // while there are nodes to look at
     while (nodeStack.length !== 0) {
-      prefix = keyStack.pop()!;
       node = nodeStack.pop()!;
 
       // iterate over its direct children
       for (edge in node) {
         nodeStack.push(node[edge]!);
-        keyStack.push(prefix + edge);
       }
-      if (SENTINEL in node) {
-        yield { key: prefix, value: node[SENTINEL]! };
+
+      if (LEAF in node) {
+        yield node[LEAF]![VALUE]!;
       }
     }
   }
 
-  /**
-   * Find all values in the trie which start with the prefix
-   * @param prefix the prefix to search for in the trie.
-   */
-  public *findValues(prefix: string): Generator<T> {
-    for (const node of this.find(prefix)) {
-      yield node.value;
-    }
-  }
-
-  private nodeContainsValue(node: CompressedTrieNode<T>): boolean {
-    return SENTINEL in node;
+  private nodeIsLeaf(node: CompletionTrieNode<T>): boolean {
+    return VALUE in node;
   }
 
   /**
@@ -195,56 +208,57 @@ export default class CompressedTrie<T> {
     key: string
   ): {
     // the traversed node (as far as we could get without falling off or following a bad node)
-    node: CompressedTrieNode<T>;
+    node: CompletionTrieNode<T>;
     // the remaining suffix of the key still left to traverse
     keySuffix: string;
     // the prefix of the key used so far
     keyPrefix: string;
-    // the parent of the node
-    parent?: CompressedTrieNode<T>;
-    // the grandparent of the node
-    grandparent?: CompressedTrieNode<T>;
     // the edge used to traverse from the parent to the node
-    nodeEdge?: string;
+    nodeEdge?: string | typeof LEAF;
     // the edge used to traverse from the grandparent to the node
     parentEdge?: string;
   } {
-    let node: CompressedTrieNode<T> = this.root;
-    let parent: CompressedTrieNode<T> | undefined;
-    let grandparent: CompressedTrieNode<T> | undefined;
+    let node: CompletionTrieNode<T> = this.root;
     let keyPrefix = "";
-    let keySuffix = key;
-    let nodeEdge: string | undefined;
+    let keySuffix = "";
+    let nodeEdge: string | undefined | typeof LEAF;
     let parentEdge: string | undefined;
+    let charactersFound: number = 0;
 
     // traverse until value is found or impossible to continue
-    while (keySuffix.length > 0) {
+    while (charactersFound < key.length) {
       // find the next edge to explore
       let nextEdge: string | undefined;
       for (const edge in node) {
-        if (keySuffix.startsWith(edge)) {
+        if (
+          key.slice(charactersFound, charactersFound + edge.length) === edge
+        ) {
           nextEdge = edge;
           break;
         }
       }
       // if we found an edge then update
       if (nextEdge !== undefined) {
-        grandparent = parent;
-        parent = node;
-        parentEdge = nodeEdge;
+        parentEdge = nodeEdge as string;
         nodeEdge = nextEdge;
-        node = node[nextEdge] as CompressedTrieNode<T>;
-        keySuffix = keySuffix.slice(nextEdge.length);
-        keyPrefix += nextEdge;
+        node = node[nextEdge] as CompletionTrieNode<T>;
+        charactersFound += nextEdge.length;
       } else {
         // otherwise terminate the search
         break;
       }
     }
 
+    keySuffix = key.slice(charactersFound);
+    keyPrefix = key.slice(0, charactersFound);
+
+    if (keySuffix.length === 0 && node[LEAF] !== undefined) {
+      node = node[LEAF]!;
+      parentEdge = nodeEdge as string;
+      nodeEdge = LEAF;
+    }
+
     return {
-      grandparent,
-      parent,
       node,
       keySuffix,
       keyPrefix,
