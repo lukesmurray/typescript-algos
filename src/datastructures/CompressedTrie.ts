@@ -3,7 +3,7 @@
 import longestCommonPrefix from "../util/longestCommonPrefix";
 import objectHasOneProperty from "../util/objectHasOneProperty";
 
-const VALUE = Symbol("Value");
+export const CompressedTrieValueKey = Symbol("Value");
 const PARENT = Symbol("Parent");
 export const CompressedTrieLeafKey = Symbol("Leaf");
 
@@ -13,7 +13,7 @@ export interface CompressedTrieNode<T> {
   [CompressedTrieLeafKey]?: CompressedTrieNode<T>;
 
   // values used on leaves
-  [VALUE]?: T;
+  [CompressedTrieValueKey]?: T;
 }
 
 export default class CompressedTrie<T> {
@@ -38,14 +38,14 @@ export default class CompressedTrie<T> {
 
     // hit a leaf
     if (this.nodeIsLeaf(node)) {
-      node[VALUE] = value;
+      node[CompressedTrieValueKey] = value;
       return;
     }
 
     // add a leaf to an existing node
     if (keySuffix.length === 0) {
       node[CompressedTrieLeafKey] = {
-        [VALUE]: value,
+        [CompressedTrieValueKey]: value,
         [PARENT]: node,
       };
       return;
@@ -83,14 +83,14 @@ export default class CompressedTrie<T> {
         };
         leaf = {
           [PARENT]: node[commonPrefix]![keySuffix],
-          [VALUE]: value,
+          [CompressedTrieValueKey]: value,
         };
         // set the leaf
         node[commonPrefix]![keySuffix]![CompressedTrieLeafKey] = leaf;
       } else {
         leaf = {
           [PARENT]: node[commonPrefix],
-          [VALUE]: value,
+          [CompressedTrieValueKey]: value,
         };
         // add the new string to the common prefix node
         node[commonPrefix]![CompressedTrieLeafKey] = leaf;
@@ -101,7 +101,7 @@ export default class CompressedTrie<T> {
       // no common prefix so add the as a new string
       node[keySuffix] = { [PARENT]: node };
       node[keySuffix]![CompressedTrieLeafKey]! = {
-        [VALUE]: value,
+        [CompressedTrieValueKey]: value,
         [PARENT]: node[keySuffix],
       };
     }
@@ -116,7 +116,7 @@ export default class CompressedTrie<T> {
   public get(key: string): T | undefined {
     const { node } = this.traverseForKey(key);
     if (this.nodeIsLeaf(node)) {
-      return node[VALUE];
+      return node[CompressedTrieValueKey];
     }
     return undefined;
   }
@@ -190,13 +190,13 @@ export default class CompressedTrie<T> {
       }
 
       if (CompressedTrieLeafKey in node) {
-        yield node[CompressedTrieLeafKey]![VALUE]!;
+        yield node[CompressedTrieLeafKey]![CompressedTrieValueKey]!;
       }
     }
   }
 
   private nodeIsLeaf(node: CompressedTrieNode<T>): boolean {
-    return VALUE in node;
+    return CompressedTrieValueKey in node;
   }
 
   /**

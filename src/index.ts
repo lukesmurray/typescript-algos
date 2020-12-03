@@ -11,6 +11,7 @@ import CompletionTrie, {
 import CompressedTrie, {
   CompressedTrieLeafKey,
   CompressedTrieNode,
+  CompressedTrieValueKey,
 } from "./datastructures/CompressedTrie";
 import Heap from "./datastructures/Heap";
 import LinkedList, { LinkedListNode } from "./datastructures/LinkedList";
@@ -24,6 +25,7 @@ export {
   CompressedTrie,
   CompressedTrieNode,
   CompressedTrieLeafKey,
+  CompressedTrieValueKey,
   AhoCorasick,
   AhoMatch,
   AhoSerialize,
