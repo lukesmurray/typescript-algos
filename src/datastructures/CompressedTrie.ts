@@ -5,12 +5,12 @@ import objectHasOneProperty from "../util/objectHasOneProperty";
 
 const VALUE = Symbol("Value");
 const PARENT = Symbol("Parent");
-const LEAF = Symbol("Leaf");
+export const CompressedTrieLeafKey = Symbol("Leaf");
 
 export interface CompressedTrieNode<T> {
   [key: string]: CompressedTrieNode<T> | undefined;
   [PARENT]?: CompressedTrieNode<T>;
-  [LEAF]?: CompressedTrieNode<T>;
+  [CompressedTrieLeafKey]?: CompressedTrieNode<T>;
 
   // values used on leaves
   [VALUE]?: T;
@@ -44,7 +44,7 @@ export default class CompressedTrie<T> {
 
     // add a leaf to an existing node
     if (keySuffix.length === 0) {
-      node[LEAF] = {
+      node[CompressedTrieLeafKey] = {
         [VALUE]: value,
         [PARENT]: node,
       };
@@ -86,21 +86,21 @@ export default class CompressedTrie<T> {
           [VALUE]: value,
         };
         // set the leaf
-        node[commonPrefix]![keySuffix]![LEAF] = leaf;
+        node[commonPrefix]![keySuffix]![CompressedTrieLeafKey] = leaf;
       } else {
         leaf = {
           [PARENT]: node[commonPrefix],
           [VALUE]: value,
         };
         // add the new string to the common prefix node
-        node[commonPrefix]![LEAF] = leaf;
+        node[commonPrefix]![CompressedTrieLeafKey] = leaf;
       }
       // delete the old edge
       delete node[nextEdge];
     } else {
       // no common prefix so add the as a new string
       node[keySuffix] = { [PARENT]: node };
-      node[keySuffix]![LEAF]! = {
+      node[keySuffix]![CompressedTrieLeafKey]! = {
         [VALUE]: value,
         [PARENT]: node[keySuffix],
       };
@@ -147,7 +147,7 @@ export default class CompressedTrie<T> {
     // if we found the node
     if (this.nodeIsLeaf(node)) {
       const parent = node[PARENT]!;
-      delete parent[LEAF];
+      delete parent[CompressedTrieLeafKey];
 
       const grandparent = parent[PARENT];
       // if parent has one child place child on grandparent and remove parent
@@ -189,8 +189,8 @@ export default class CompressedTrie<T> {
         nodeStack.push(node[edge]!);
       }
 
-      if (LEAF in node) {
-        yield node[LEAF]![VALUE]!;
+      if (CompressedTrieLeafKey in node) {
+        yield node[CompressedTrieLeafKey]![VALUE]!;
       }
     }
   }
@@ -214,14 +214,14 @@ export default class CompressedTrie<T> {
     // the prefix of the key used so far
     keyPrefix: string;
     // the edge used to traverse from the parent to the node
-    nodeEdge?: string | typeof LEAF;
+    nodeEdge?: string | typeof CompressedTrieLeafKey;
     // the edge used to traverse from the grandparent to the node
     parentEdge?: string;
   } {
     let node: CompressedTrieNode<T> = this.root;
     let keyPrefix = "";
     let keySuffix = "";
-    let nodeEdge: string | undefined | typeof LEAF;
+    let nodeEdge: string | undefined | typeof CompressedTrieLeafKey;
     let parentEdge: string | undefined;
     let charactersFound: number = 0;
 
@@ -252,10 +252,10 @@ export default class CompressedTrie<T> {
     keySuffix = key.slice(charactersFound);
     keyPrefix = key.slice(0, charactersFound);
 
-    if (keySuffix.length === 0 && node[LEAF] !== undefined) {
-      node = node[LEAF]!;
+    if (keySuffix.length === 0 && node[CompressedTrieLeafKey] !== undefined) {
+      node = node[CompressedTrieLeafKey]!;
       parentEdge = nodeEdge as string;
-      nodeEdge = LEAF;
+      nodeEdge = CompressedTrieLeafKey;
     }
 
     return {

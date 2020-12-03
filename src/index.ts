@@ -9,6 +9,7 @@ import CompletionTrie, {
   CompletionTrieNode,
 } from "./datastructures/CompletionTrie";
 import CompressedTrie, {
+  CompressedTrieLeafKey,
   CompressedTrieNode,
 } from "./datastructures/CompressedTrie";
 import Heap from "./datastructures/Heap";
@@ -22,6 +23,7 @@ export {
   CompletionTrieNode,
   CompressedTrie,
   CompressedTrieNode,
+  CompressedTrieLeafKey,
   AhoCorasick,
   AhoMatch,
   AhoSerialize,
