@@ -8,6 +8,9 @@ import BinarySearchTree from "./datastructures/BinarySearchTree";
 import CompletionTrie, {
   CompletionTrieNode,
 } from "./datastructures/CompletionTrie";
+import CompressedTrie, {
+  CompressedTrieNode,
+} from "./datastructures/CompressedTrie";
 import Heap from "./datastructures/Heap";
 import LinkedList, { LinkedListNode } from "./datastructures/LinkedList";
 import Queue from "./datastructures/Queue";
@@ -17,6 +20,8 @@ import Trie from "./datastructures/Trie";
 export {
   CompletionTrie,
   CompletionTrieNode,
+  CompressedTrie,
+  CompressedTrieNode,
   AhoCorasick,
   AhoMatch,
   AhoSerialize,

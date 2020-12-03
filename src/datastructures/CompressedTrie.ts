@@ -7,18 +7,18 @@ const VALUE = Symbol("Value");
 const PARENT = Symbol("Parent");
 const LEAF = Symbol("Leaf");
 
-export interface CompletionTrieNode<T> {
-  [key: string]: CompletionTrieNode<T> | undefined;
-  [PARENT]?: CompletionTrieNode<T>;
-  [LEAF]?: CompletionTrieNode<T>;
+export interface CompressedTrieNode<T> {
+  [key: string]: CompressedTrieNode<T> | undefined;
+  [PARENT]?: CompressedTrieNode<T>;
+  [LEAF]?: CompressedTrieNode<T>;
 
   // values used on leaves
   [VALUE]?: T;
 }
 
-export default class CompletionTrie<T> {
+export default class CompressedTrie<T> {
   private _size: number;
-  public root: CompletionTrieNode<T>;
+  public root: CompressedTrieNode<T>;
   constructor() {
     this._size = 0;
     this.root = {};
@@ -75,7 +75,7 @@ export default class CompletionTrie<T> {
       node[commonPrefix]![nextSuffix] = node[nextEdge];
       // set the parent of the edge with the shared prefix
       node[commonPrefix]![nextSuffix]![PARENT] = node[commonPrefix];
-      let leaf: CompletionTrieNode<T>;
+      let leaf: CompressedTrieNode<T>;
       if (keySuffix.length !== 0) {
         // add the new string to the common prefix node
         node[commonPrefix]![keySuffix] = {
@@ -177,7 +177,7 @@ export default class CompletionTrie<T> {
     let { node } = this.traverseForKey(prefix);
 
     // Performing DFS from prefix
-    const nodeStack: Array<CompletionTrieNode<T>> = [node];
+    const nodeStack: Array<CompressedTrieNode<T>> = [node];
     let edge: string;
 
     // while there are nodes to look at
@@ -195,7 +195,7 @@ export default class CompletionTrie<T> {
     }
   }
 
-  private nodeIsLeaf(node: CompletionTrieNode<T>): boolean {
+  private nodeIsLeaf(node: CompressedTrieNode<T>): boolean {
     return VALUE in node;
   }
 
@@ -208,7 +208,7 @@ export default class CompletionTrie<T> {
     key: string
   ): {
     // the traversed node (as far as we could get without falling off or following a bad node)
-    node: CompletionTrieNode<T>;
+    node: CompressedTrieNode<T>;
     // the remaining suffix of the key still left to traverse
     keySuffix: string;
     // the prefix of the key used so far
@@ -218,7 +218,7 @@ export default class CompletionTrie<T> {
     // the edge used to traverse from the grandparent to the node
     parentEdge?: string;
   } {
-    let node: CompletionTrieNode<T> = this.root;
+    let node: CompressedTrieNode<T> = this.root;
     let keyPrefix = "";
     let keySuffix = "";
     let nodeEdge: string | undefined | typeof LEAF;
@@ -241,7 +241,7 @@ export default class CompletionTrie<T> {
       if (nextEdge !== undefined) {
         parentEdge = nodeEdge as string;
         nodeEdge = nextEdge;
-        node = node[nextEdge] as CompletionTrieNode<T>;
+        node = node[nextEdge] as CompressedTrieNode<T>;
         charactersFound += nextEdge.length;
       } else {
         // otherwise terminate the search
