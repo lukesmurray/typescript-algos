@@ -18,7 +18,7 @@ export interface CompletionTrieNode<T> {
 
 export default class CompletionTrie<T> {
   private _size: number;
-  private root: CompletionTrieNode<T>;
+  public root: CompletionTrieNode<T>;
   constructor() {
     this._size = 0;
     this.root = {};
