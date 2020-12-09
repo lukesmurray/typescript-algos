@@ -322,7 +322,7 @@ export default class CompletionTrie<T> {
     if (keySuffix.length > 0) {
       // return the first edge which extends keySuffix
       for (const edge in node) {
-        if (longestCommonPrefix(edge, keySuffix).length > 0) {
+        if (edge.startsWith(keySuffix)) {
           return node[edge]!;
         }
       }
