@@ -77,3 +77,12 @@ test("top k works most challenging", () => {
   });
   expect([...trie.topK("s")]).toEqual(words);
 });
+
+test("top k works with entire words", () => {
+  const trie = new CompletionTrie<string>();
+  const word = "hypertension";
+  trie.set(word, word, 1);
+  for (let i = 0; i < word.length; i++) {
+    expect([...trie.topK(word.slice(0, i))]).toEqual([word]);
+  }
+});

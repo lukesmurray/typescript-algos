@@ -230,10 +230,10 @@ export default class CompletionTrie<T> {
 
   public *topK(prefix: string, k?: number): Generator<T> {
     k = k ?? Number.POSITIVE_INFINITY;
-    let { node, keySuffix } = this.traverseForKey(prefix);
+    let node = this.locusForKey(prefix);
 
     // if we couldn't complete the prefix then we're done
-    if (keySuffix.length > 0) {
+    if (node === undefined) {
       return;
     }
 
@@ -311,6 +311,29 @@ export default class CompletionTrie<T> {
   }
 
   /**
+   * Get the locus node, the highest node in the trie that matches or extends
+   * the prefix string
+   * @param prefix the prefix to the locus
+   */
+  private locusForKey(prefix: string): CompletionTrieNode<T> | undefined {
+    const { node, keySuffix } = this.traverseForKey(prefix);
+
+    // if keySuffix is non zero we still have some matching to do
+    if (keySuffix.length > 0) {
+      // return the first edge which extends keySuffix
+      for (const edge in node) {
+        if (longestCommonPrefix(edge, keySuffix).length > 0) {
+          return node[edge]!;
+        }
+      }
+      // actually no match for prefix so we're done
+      return undefined;
+    } else {
+      return node;
+    }
+  }
+
+  /**
    * Traverse the trie as far as possible for the given key
    * @param key the search to traverse for
    * @returns the node traversed to, the prefix used to get to the node, the suffix left of the key
@@ -318,15 +341,25 @@ export default class CompletionTrie<T> {
   private traverseForKey(
     key: string
   ): {
-    // the traversed node (as far as we could get without falling off or following a bad node)
+    /**
+     * the traversed node (as far as we could get without falling off or following a bad node)
+     */
     node: CompletionTrieNode<T>;
-    // the remaining suffix of the key still left to traverse
+    /**
+     * the remaining suffix of the key still left to traverse
+     */
     keySuffix: string;
-    // the prefix of the key used so far
+    /**
+     * the prefix of the key used so far
+     */
     keyPrefix: string;
-    // the edge used to traverse from the parent to the node
+    /**
+     * the edge used to traverse from the parent to the node
+     */
     nodeEdge?: string | typeof LEAF;
-    // the edge used to traverse from the grandparent to the node
+    /**
+     * the edge used to traverse from the grandparent to the node
+     */
     parentEdge?: string;
   } {
     let node: CompletionTrieNode<T> = this.root;
