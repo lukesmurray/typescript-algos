@@ -1,16 +1,18 @@
 /* eslint-disable @typescript-eslint/no-dynamic-delete */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import jsonParseSerializedSymbols from "../util/jsonParseSerializedSymbols";
 import longestCommonPrefix from "../util/longestCommonPrefix";
 import objectHasOneProperty from "../util/objectHasOneProperty";
+import symbolToString from "../util/symbolToString";
 import Heap from "./Heap";
 import { CompareFn } from "./Util";
 
-const VALUE = Symbol("Value");
-const RANKING = Symbol("Ranking");
-const PARENT = Symbol("Parent");
-const LEAF = Symbol("Leaf");
-const CHILDREN = Symbol("Children");
-const CHILD_INDEX = Symbol("ChildIndex");
+const VALUE = Symbol.for("Value");
+const RANKING = Symbol.for("Ranking");
+const PARENT = Symbol.for("Parent");
+const LEAF = Symbol.for("Leaf");
+const CHILDREN = Symbol.for("Children");
+const CHILD_INDEX = Symbol.for("ChildIndex");
 
 export interface CompletionTrieNode<T> {
   [key: string]: CompletionTrieNode<T> | undefined;
@@ -496,5 +498,74 @@ export default class CompletionTrie<T> {
       newMin = node[LEAF]![RANKING]!;
     }
     return newMin;
+  }
+
+  public toJSON(): string {
+    return JSON.stringify({
+      root: this.nodeToSerializableObject(this.root),
+      _size: this._size,
+    });
+  }
+
+  // converts node into a serializable object, note that parent links are lost
+  private nodeToSerializableObject(node: CompletionTrieNode<T>): string {
+    const result: any = {};
+    for (const prop in node) {
+      result[prop] = this.nodeToSerializableObject(node[prop]!);
+    }
+
+    if (LEAF in node) {
+      result[symbolToString(LEAF)] = this.nodeToSerializableObject(node[LEAF]!);
+    }
+    if (CHILDREN in node) {
+      result[symbolToString(CHILDREN)] = node[CHILDREN]?.map((v) => {
+        if (typeof v === "symbol") {
+          return symbolToString(v);
+        }
+        return v;
+      });
+    }
+    if (VALUE in node) {
+      result[symbolToString(VALUE)] = node[VALUE];
+    }
+    if (RANKING in node) {
+      result[symbolToString(RANKING)] = node[RANKING];
+    }
+    if (CHILD_INDEX in node) {
+      result[symbolToString(CHILD_INDEX)] = node[CHILD_INDEX];
+    }
+
+    return result;
+  }
+
+  public static fromJSON<T>(serializedTrie: string): CompletionTrie<T> {
+    const data = jsonParseSerializedSymbols<{
+      root: CompletionTrieNode<T>;
+      _size: number;
+    }>(serializedTrie);
+    const trie = new CompletionTrie<T>();
+    trie._size = data._size;
+    trie.root = data.root;
+
+    // add parent links back to the trie
+    trie.addParentLinks(trie.root);
+
+    return trie;
+  }
+
+  private addParentLinks(
+    node: CompletionTrieNode<T> | undefined,
+    parent?: CompletionTrieNode<T>
+  ): void {
+    if (node === undefined) {
+      return;
+    }
+    if (parent !== undefined) {
+      node[PARENT] = parent;
+    }
+    for (const childKey in node) {
+      this.addParentLinks(node[childKey], node);
+    }
+    this.addParentLinks(node[LEAF], node);
   }
 }

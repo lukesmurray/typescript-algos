@@ -86,3 +86,12 @@ test("top k works with entire words", () => {
     expect([...trie.topK(word.slice(0, i))]).toEqual([word]);
   }
 });
+
+test("serialization works", () => {
+  const trie = new CompletionTrie<string>();
+  const words = ["s", "so", "soar", "soap", "soft", "softer"];
+  words.forEach((word, i) => {
+    trie.set(word, word, i);
+  });
+  expect(CompletionTrie.fromJSON<string>(trie.toJSON())).toEqual(trie);
+});
