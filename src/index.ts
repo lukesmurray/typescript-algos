@@ -1,5 +1,4 @@
 import AhoCorasick, {
-  AhoBuildOptions,
   AhoMatch,
   AhoPatternDict,
   AhoSerialize,
@@ -18,6 +17,7 @@ import LinkedList, { LinkedListNode } from "./datastructures/LinkedList";
 import Queue from "./datastructures/Queue";
 import Stack from "./datastructures/Stack";
 import Trie from "./datastructures/Trie";
+import { RafBuildOptions } from "./util/RafBuildOptions";
 
 export {
   CompletionTrie,
@@ -29,7 +29,7 @@ export {
   AhoCorasick,
   AhoMatch,
   AhoSerialize,
-  AhoBuildOptions,
+  RafBuildOptions,
   AhoPatternDict,
   BinarySearchTree,
   Heap,

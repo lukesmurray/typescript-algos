@@ -95,3 +95,26 @@ test("serialization works", () => {
   });
   expect(CompletionTrie.fromJSON<string>(trie.toJSON())).toEqual(trie);
 });
+
+test("messaging works", () => {
+  const trie = new CompletionTrie<string>();
+  const words = ["s", "so", "soar", "soap", "soft", "softer"];
+  words.forEach((word, i) => {
+    trie.set(word, word, i);
+  });
+  expect(CompletionTrie.fromMessage<string>(trie.toMessage())).toEqual(trie);
+});
+
+test("messaging async works", async () => {
+  const trie = new CompletionTrie<string>();
+  const words = ["s", "so", "soar", "soap", "soft", "softer"];
+  words.forEach((word, i) => {
+    trie.set(word, word, i);
+  });
+  expect(
+    await CompletionTrie.fromMessage<string>(trie.toMessage(), {
+      useRaf: true,
+      maxMillisecondsPerFrame: 3,
+    })
+  ).toEqual(trie);
+});

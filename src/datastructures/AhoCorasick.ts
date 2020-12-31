@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import Full from "../util/Full";
+import {
+  normalizeBuildOptions,
+  RafBuildOptions,
+  RafBuildOptionsWithoutRaf,
+  RafBuildOptionsWithRaf,
+} from "../util/RafBuildOptions";
 import Queue from "./Queue";
 
 // for leftmost semantics see
@@ -16,34 +21,6 @@ const PARENT = "PARENT";
 const SUFFIXLINK = "SUFFIX";
 const OUTPUTLINK = "OUTPUT";
 const DEPTH = "DEPTH";
-
-interface BaseAhoBuildOptions {
-  /**
-   * The maximum number of milliseconds to use per frame.
-   */
-  maxMillisecondsPerFrame?: number;
-}
-
-interface AhoBuildOptionsWithRaf extends BaseAhoBuildOptions {
-  /**
-   * wether or not to use request animation frame while building.
-   * If true the build process will use request animation frame to
-   * avoid throttling the ui thread.
-   */
-  useRaf: true;
-}
-interface AhoBuildOptionsWithoutRaf extends BaseAhoBuildOptions {
-  /**
-   * wether or not to use request animation frame while building.
-   * If true the build process will use request animation frame to
-   * avoid throttling the ui thread.
-   */
-  useRaf?: false;
-}
-
-export type AhoBuildOptions =
-  | AhoBuildOptionsWithRaf
-  | AhoBuildOptionsWithoutRaf;
 
 export interface AhoSerialize<T> {
   root: AhoNode<T>;
@@ -196,12 +173,12 @@ export default class AhoCorasick<T> {
 
   public setPatternDict(
     patternDict: AhoPatternDict<T>,
-    buildOptions?: AhoBuildOptionsWithoutRaf
+    buildOptions?: RafBuildOptionsWithoutRaf
   ): void;
 
   public setPatternDict(
     patternDict: AhoPatternDict<T>,
-    buildOptions: AhoBuildOptionsWithRaf
+    buildOptions: RafBuildOptionsWithRaf
   ): Promise<void>;
 
   /**
@@ -209,7 +186,7 @@ export default class AhoCorasick<T> {
    */
   public setPatternDict(
     patternDict: AhoPatternDict<T>,
-    buildOptions?: AhoBuildOptions
+    buildOptions?: RafBuildOptions
   ): Promise<void> | void {
     const normalizedBuildOptions = normalizeBuildOptions(buildOptions);
     const patternStack = Object.keys(patternDict);
@@ -362,9 +339,9 @@ export default class AhoCorasick<T> {
     }
   }
 
-  public build(buildOptions?: AhoBuildOptionsWithoutRaf): void;
-  public build(buildOptions: AhoBuildOptionsWithRaf): Promise<void>;
-  public build(buildOptions?: AhoBuildOptions): Promise<void> | void {
+  public build(buildOptions?: RafBuildOptionsWithoutRaf): void;
+  public build(buildOptions: RafBuildOptionsWithRaf): Promise<void>;
+  public build(buildOptions?: RafBuildOptions): Promise<void> | void {
     const normalizedBuildOptions = normalizeBuildOptions(buildOptions);
 
     if (this._upToDate) {
@@ -618,14 +595,4 @@ export default class AhoCorasick<T> {
     aho.root = serialized.root;
     return aho;
   }
-}
-
-function normalizeBuildOptions(
-  buildOptions?: AhoBuildOptions
-): Full<AhoBuildOptions> {
-  return {
-    maxMillisecondsPerFrame: 3,
-    useRaf: false,
-    ...buildOptions,
-  };
 }

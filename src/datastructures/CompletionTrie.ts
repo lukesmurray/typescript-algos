@@ -3,6 +3,12 @@
 import jsonParseSerializedSymbols from "../util/jsonParseSerializedSymbols";
 import longestCommonPrefix from "../util/longestCommonPrefix";
 import objectHasOneProperty from "../util/objectHasOneProperty";
+import {
+  normalizeBuildOptions,
+  RafBuildOptions,
+  RafBuildOptionsWithoutRaf,
+  RafBuildOptionsWithRaf,
+} from "../util/RafBuildOptions";
 import symbolToString from "../util/symbolToString";
 import Heap from "./Heap";
 import { CompareFn } from "./Util";
@@ -26,6 +32,11 @@ export interface CompletionTrieNode<T> {
 
   // values used in search
   [CHILD_INDEX]?: number;
+}
+
+interface CompletionTrieMessage<T> {
+  root: CompletionTrieNode<T>;
+  size: number;
 }
 
 export default class CompletionTrie<T> {
@@ -553,6 +564,89 @@ export default class CompletionTrie<T> {
     return trie;
   }
 
+  public toMessage(): CompletionTrieMessage<T> {
+    this.removeParentLinks(this.root);
+    return {
+      root: this.root,
+      size: this._size,
+    };
+  }
+
+  public static fromMessage<T>(
+    message: CompletionTrieMessage<T>,
+    buildOptions?: RafBuildOptionsWithoutRaf
+  ): CompletionTrie<T>;
+
+  public static fromMessage<T>(
+    message: CompletionTrieMessage<T>,
+    buildOptions: RafBuildOptionsWithRaf
+  ): Promise<CompletionTrie<T>>;
+
+  public static fromMessage<T>(
+    message: CompletionTrieMessage<T>,
+    buildOptions?: RafBuildOptions
+  ): CompletionTrie<T> | Promise<CompletionTrie<T>> {
+    const trie = new CompletionTrie<T>();
+    const normalizedBuildOptions = normalizeBuildOptions(buildOptions);
+
+    trie._size = message.size;
+    trie.root = message.root;
+
+    const nodeStack: Array<{
+      node: CompletionTrieNode<T>;
+      parent?: CompletionTrieNode<T>;
+    }> = [{ node: trie.root }];
+
+    const processNode = (): void => {
+      const { node, parent } = nodeStack.pop()!;
+      node[PARENT] = parent;
+
+      for (const childKey in node) {
+        nodeStack.push({ node: node[childKey]!, parent: node });
+      }
+      if (LEAF in node) {
+        nodeStack.push({ node: node[LEAF]!, parent: node });
+      }
+    };
+
+    if (!normalizedBuildOptions.useRaf) {
+      while (nodeStack.length !== 0) {
+        processNode();
+      }
+      return trie;
+    } else {
+      return new Promise((resolve, reject) => {
+        // process children using raf
+        const processNodeStack = (taskStartTime: number): void => {
+          // process children for maxMillisecondsPerFrame
+          try {
+            let taskFinishTime;
+            do {
+              if (nodeStack.length !== 0) {
+                processNode();
+              }
+              taskFinishTime = performance.now();
+            } while (
+              nodeStack.length !== 0 &&
+              taskFinishTime - taskStartTime <
+                normalizedBuildOptions.maxMillisecondsPerFrame
+            );
+
+            // if done then return otherwise request another frame
+            if (nodeStack.length !== 0) {
+              requestAnimationFrame(processNodeStack);
+            } else {
+              resolve(trie);
+            }
+          } catch (err) {
+            reject(err);
+          }
+        };
+        requestAnimationFrame(processNodeStack);
+      });
+    }
+  }
+
   private addParentLinks(
     node: CompletionTrieNode<T> | undefined,
     parent?: CompletionTrieNode<T>
@@ -567,5 +661,18 @@ export default class CompletionTrie<T> {
       this.addParentLinks(node[childKey], node);
     }
     this.addParentLinks(node[LEAF], node);
+  }
+
+  private removeParentLinks(node: CompletionTrieNode<T> | undefined): void {
+    if (node === undefined) {
+      return;
+    }
+    if (node[PARENT] !== undefined) {
+      delete node[PARENT];
+    }
+    for (const childKey in node) {
+      this.removeParentLinks(node[childKey]);
+    }
+    this.removeParentLinks(node[LEAF]);
   }
 }
