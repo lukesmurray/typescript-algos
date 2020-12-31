@@ -17,3 +17,11 @@ import { LinkedList } from "typescript-algos";
 
 const linkedList = new LinkedList([...Array(10).keys()]);
 ```
+
+## Contributing
+
+### Releases
+
+Commit your changes.  
+Run `npm version patch && npm publish`  
+Git Push
