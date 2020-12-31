@@ -5,6 +5,7 @@ import AhoCorasick, {
 } from "./datastructures/AhoCorasick";
 import BinarySearchTree from "./datastructures/BinarySearchTree";
 import CompletionTrie, {
+  CompletionTrieMessage,
   CompletionTrieNode,
 } from "./datastructures/CompletionTrie";
 import CompressedTrie, {
@@ -38,4 +39,5 @@ export {
   Queue,
   Stack,
   Trie,
+  CompletionTrieMessage,
 };

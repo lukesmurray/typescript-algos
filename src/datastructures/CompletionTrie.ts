@@ -34,7 +34,7 @@ export interface CompletionTrieNode<T> {
   [CHILD_INDEX]?: number;
 }
 
-interface CompletionTrieMessage<T> {
+export interface CompletionTrieMessage<T> {
   root: CompletionTrieNode<T>;
   size: number;
 }
