@@ -652,6 +652,10 @@ export default class CompletionTrie<T> {
   }
 
   private removeSymbolsRecursively(node: CompletionTrieNode<T>): void {
+    for (const childKey in node) {
+      this.removeSymbolsRecursively(node[childKey]!);
+    }
+
     if (LEAF in node) {
       node[symbolToString(LEAF)] = node[LEAF]!;
       this.removeSymbolsRecursively(node[LEAF]!);
@@ -675,15 +679,11 @@ export default class CompletionTrie<T> {
     if (CHILD_INDEX in node) {
       node[symbolToString(CHILD_INDEX)] = node[CHILD_INDEX] as any;
     }
-
-    for (const childKey in node) {
-      this.removeSymbolsRecursively(node[childKey]!);
-    }
   }
 
   private addSymbolsToNode(node: CompletionTrieNode<T>): CompletionTrieNode<T> {
     const REGEX_SYMBOL_STRING = /^@@(.*)@@$/;
-    for (const key in node) {
+    for (const key of Object.keys(node)) {
       const symbolMatch = REGEX_SYMBOL_STRING.exec(key);
       if (symbolMatch !== null) {
         const symbol: symbol = Symbol.for(symbolMatch[1]);
