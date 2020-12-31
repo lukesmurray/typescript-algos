@@ -513,20 +513,22 @@ export default class CompletionTrie<T> {
 
   public toJSON(): string {
     return JSON.stringify({
-      root: this.nodeToSerializableObject(this.root),
+      root: this.nodeToSerializableRecursive(this.root),
       _size: this._size,
     });
   }
 
   // converts node into a serializable object, note that parent links are lost
-  private nodeToSerializableObject(node: CompletionTrieNode<T>): string {
+  private nodeToSerializableRecursive(node: CompletionTrieNode<T>): string {
     const result: any = {};
     for (const prop in node) {
-      result[prop] = this.nodeToSerializableObject(node[prop]!);
+      result[prop] = this.nodeToSerializableRecursive(node[prop]!);
     }
 
     if (LEAF in node) {
-      result[symbolToString(LEAF)] = this.nodeToSerializableObject(node[LEAF]!);
+      result[symbolToString(LEAF)] = this.nodeToSerializableRecursive(
+        node[LEAF]!
+      );
     }
     if (CHILDREN in node) {
       result[symbolToString(CHILDREN)] = node[CHILDREN]?.map((v) => {
@@ -559,13 +561,14 @@ export default class CompletionTrie<T> {
     trie.root = data.root;
 
     // add parent links back to the trie
-    trie.addParentLinks(trie.root);
+    trie.addParentLinksRecursively(trie.root);
 
     return trie;
   }
 
   public toMessage(): CompletionTrieMessage<T> {
-    this.removeParentLinks(this.root);
+    this.removeParentLinksRecursively(this.root);
+    this.removeSymbolsRecursively(this.root);
     return {
       root: this.root,
       size: this._size,
@@ -600,6 +603,7 @@ export default class CompletionTrie<T> {
     const processNode = (): void => {
       const { node, parent } = nodeStack.pop()!;
       node[PARENT] = parent;
+      trie.addSymbolsToNode(node);
 
       for (const childKey in node) {
         nodeStack.push({ node: node[childKey]!, parent: node });
@@ -647,7 +651,68 @@ export default class CompletionTrie<T> {
     }
   }
 
-  private addParentLinks(
+  private removeSymbolsRecursively(node: CompletionTrieNode<T>): void {
+    if (LEAF in node) {
+      node[symbolToString(LEAF)] = node[LEAF]!;
+      this.removeSymbolsRecursively(node[LEAF]!);
+    }
+
+    if (CHILDREN in node) {
+      node[symbolToString(CHILDREN)] = node[CHILDREN]!.map((v) => {
+        if (typeof v === "symbol") {
+          return symbolToString(v);
+        }
+        return v;
+      }) as any;
+    }
+
+    if (VALUE in node) {
+      node[symbolToString(VALUE)] = node[VALUE] as any;
+    }
+    if (RANKING in node) {
+      node[symbolToString(RANKING)] = node[RANKING] as any;
+    }
+    if (CHILD_INDEX in node) {
+      node[symbolToString(CHILD_INDEX)] = node[CHILD_INDEX] as any;
+    }
+
+    for (const childKey in node) {
+      this.removeSymbolsRecursively(node[childKey]!);
+    }
+  }
+
+  private addSymbolsToNode(node: CompletionTrieNode<T>): CompletionTrieNode<T> {
+    const REGEX_SYMBOL_STRING = /^@@(.*)@@$/;
+    for (const key in node) {
+      const symbolMatch = REGEX_SYMBOL_STRING.exec(key);
+      if (symbolMatch !== null) {
+        const symbol: symbol = Symbol.for(symbolMatch[1]);
+        if (symbol === LEAF) {
+          node[LEAF] = node[key];
+        } else if (symbol === VALUE) {
+          node[VALUE] = node[key] as any;
+        } else if (symbol === RANKING) {
+          node[RANKING] = node[key] as any;
+        } else if (symbol === CHILD_INDEX) {
+          node[CHILD_INDEX] = node[key] as any;
+        } else if (symbol === CHILDREN) {
+          node[CHILDREN] = (node[key] as any).map((v: any) => {
+            const symbolMatch = REGEX_SYMBOL_STRING.exec(v);
+            if (symbolMatch !== null) {
+              const symbol: symbol = Symbol.for(symbolMatch[1]);
+              return symbol;
+            } else {
+              return v;
+            }
+          });
+        }
+        delete node[key];
+      }
+    }
+    return node;
+  }
+
+  private addParentLinksRecursively(
     node: CompletionTrieNode<T> | undefined,
     parent?: CompletionTrieNode<T>
   ): void {
@@ -658,12 +723,14 @@ export default class CompletionTrie<T> {
       node[PARENT] = parent;
     }
     for (const childKey in node) {
-      this.addParentLinks(node[childKey], node);
+      this.addParentLinksRecursively(node[childKey], node);
     }
-    this.addParentLinks(node[LEAF], node);
+    this.addParentLinksRecursively(node[LEAF], node);
   }
 
-  private removeParentLinks(node: CompletionTrieNode<T> | undefined): void {
+  private removeParentLinksRecursively(
+    node: CompletionTrieNode<T> | undefined
+  ): void {
     if (node === undefined) {
       return;
     }
@@ -671,8 +738,8 @@ export default class CompletionTrie<T> {
       delete node[PARENT];
     }
     for (const childKey in node) {
-      this.removeParentLinks(node[childKey]);
+      this.removeParentLinksRecursively(node[childKey]);
     }
-    this.removeParentLinks(node[LEAF]);
+    this.removeParentLinksRecursively(node[LEAF]);
   }
 }
