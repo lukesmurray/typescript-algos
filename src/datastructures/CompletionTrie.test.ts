@@ -189,5 +189,14 @@ test("top k words with collisions most challenging", () => {
   values.forEach(([word, value, score]) => {
     trie.set(word, value, score);
   });
-  expect([...trie.topK("s")]).toEqual(values.map((v) => v[1]));
+  const topKSExpected = values.map((v) => v[1]);
+  expect([...trie.topK("s")]).toEqual(topKSExpected);
+  expect(CompletionTrie.fromJSON<string>(trie.toJSON())).toEqual(trie);
+  expect([...CompletionTrie.fromJSON<string>(trie.toJSON()).topK("s")]).toEqual(
+    topKSExpected
+  );
+  expect(CompletionTrie.fromMessage<string>(trie.toMessage())).toEqual(trie);
+  expect([
+    ...CompletionTrie.fromMessage<string>(trie.toMessage()).topK("s"),
+  ]).toEqual(topKSExpected);
 });

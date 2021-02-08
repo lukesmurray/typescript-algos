@@ -584,6 +584,7 @@ export default class CompletionTrie<T> {
     return JSON.stringify({
       root: this.nodeToSerializableRecursive(this.root),
       _size: this._size,
+      _allowCollisions: this._allowCollisions,
     });
   }
 
@@ -610,6 +611,9 @@ export default class CompletionTrie<T> {
     if (VALUE in node) {
       result[symbolToString(VALUE)] = node[VALUE];
     }
+    if (VALUES in node) {
+      result[symbolToString(VALUES)] = node[VALUES];
+    }
     if (RANKING in node) {
       result[symbolToString(RANKING)] = node[RANKING];
     }
@@ -624,10 +628,12 @@ export default class CompletionTrie<T> {
     const data = jsonParseSerializedSymbols<{
       root: CompletionTrieNode<T>;
       _size: number;
+      _allowCollisions: boolean;
     }>(serializedTrie);
     const trie = new CompletionTrie<T>();
     trie._size = data._size;
     trie.root = data.root;
+    trie._allowCollisions = data._allowCollisions;
 
     // add parent links back to the trie
     trie.addParentLinksRecursively(trie.root);
@@ -744,6 +750,9 @@ export default class CompletionTrie<T> {
     if (VALUE in node) {
       node[symbolToString(VALUE)] = node[VALUE] as any;
     }
+    if (VALUES in node) {
+      node[symbolToString(VALUES)] = node[VALUES] as any;
+    }
     if (RANKING in node) {
       node[symbolToString(RANKING)] = node[RANKING] as any;
     }
@@ -762,6 +771,8 @@ export default class CompletionTrie<T> {
           node[LEAF] = node[key];
         } else if (symbol === VALUE) {
           node[VALUE] = node[key] as any;
+        } else if (symbol === VALUES) {
+          node[VALUES] = node[key] as any;
         } else if (symbol === RANKING) {
           node[RANKING] = node[key] as any;
         } else if (symbol === CHILD_INDEX) {
