@@ -11,8 +11,8 @@ import {
 } from "../util/RafBuildOptions";
 import symbolToString from "../util/symbolToString";
 import Heap from "./Heap";
-import { CompareFn } from "./Util";
 
+const VALUES = Symbol.for("Values");
 const VALUE = Symbol.for("Value");
 const RANKING = Symbol.for("Ranking");
 const PARENT = Symbol.for("Parent");
@@ -30,6 +30,8 @@ export interface CompletionTrieNode<T> {
   [VALUE]?: T;
   [RANKING]?: number;
 
+  [VALUES]?: Array<[T, number]>;
+
   // values used in search
   [CHILD_INDEX]?: number;
 }
@@ -37,14 +39,21 @@ export interface CompletionTrieNode<T> {
 export interface CompletionTrieMessage<T> {
   root: CompletionTrieNode<T>;
   size: number;
+  allowCollisions: boolean;
 }
 
 export default class CompletionTrie<T> {
   private _size: number;
   private root: CompletionTrieNode<T>;
-  constructor() {
+  private _allowCollisions: boolean;
+  constructor(allowCollisions: boolean = false) {
     this._size = 0;
     this.root = {};
+    this._allowCollisions = allowCollisions;
+  }
+
+  public get allowCollisions(): boolean {
+    return this._allowCollisions;
   }
 
   public get size(): number {
@@ -60,8 +69,17 @@ export default class CompletionTrie<T> {
     let { node, keySuffix } = this.traverseForKey(key);
 
     // hit a leaf
-    if (this.nodeIsLeaf(node)) {
-      node[VALUE] = value;
+    if (this.nodeIsLeaf(node) || this.nodeIsCollisionLeaf(node)) {
+      if (this._allowCollisions) {
+        this.convertLeafToCollisionLeaf(node);
+      }
+
+      if (this.nodeIsCollisionLeaf(node)) {
+        node[VALUES]?.push([value, score]);
+      } else {
+        node[VALUE] = value;
+      }
+
       this.setScore(node, score);
       return;
     }
@@ -142,10 +160,13 @@ export default class CompletionTrie<T> {
    * value is associated with the key.
    * @param key the key to get from the trie
    */
-  public get(key: string): T | undefined {
+  public get(key: string): T | T[] | undefined {
     const { node } = this.traverseForKey(key);
     if (this.nodeIsLeaf(node)) {
       return node[VALUE];
+    }
+    if (this.nodeIsCollisionLeaf(node)) {
+      return node[VALUES]!.map((n) => n[0]);
     }
     return undefined;
   }
@@ -156,7 +177,7 @@ export default class CompletionTrie<T> {
    */
   public has(key: string): boolean {
     const { node } = this.traverseForKey(key);
-    return this.nodeIsLeaf(node);
+    return this.nodeIsLeaf(node) || this.nodeIsCollisionLeaf(node);
   }
 
   /**
@@ -174,7 +195,7 @@ export default class CompletionTrie<T> {
   public delete(key: string): boolean {
     const { node, parentEdge } = this.traverseForKey(key);
     // if we found the node
-    if (this.nodeIsLeaf(node)) {
+    if (this.nodeIsLeaf(node) || this.nodeIsCollisionLeaf(node)) {
       const parent = node[PARENT]!;
       delete parent[LEAF];
 
@@ -226,7 +247,14 @@ export default class CompletionTrie<T> {
         keyStack.push(prefix + edge);
       }
       if (LEAF in node) {
-        yield { key: prefix, value: node[LEAF]![VALUE]! };
+        const leaf = node[LEAF]!;
+        if (this.nodeIsLeaf(leaf)) {
+          yield { key: prefix, value: leaf[VALUE]! };
+        } else if (this.nodeIsCollisionLeaf(leaf)) {
+          for (const valueScore of leaf[VALUES]!) {
+            yield { key: prefix, value: valueScore[0] };
+          }
+        }
       }
     }
   }
@@ -252,41 +280,48 @@ export default class CompletionTrie<T> {
 
     // we don't want to start with a leaf just in case there are other
     // children
-    if (this.nodeIsLeaf(node)) {
+    if (this.nodeIsLeaf(node) || this.nodeIsCollisionLeaf(node)) {
       node = node[PARENT]!;
     }
 
-    const compareFn: CompareFn<CompletionTrieNode<T>> = (a, b) => {
-      if (a[RANKING]! < b[RANKING]!) {
-        return -1;
-      } else if (a[RANKING]! > b[RANKING]!) {
-        return 1;
-      } else {
-        return 0;
-      }
-    };
-    const heap = new Heap<CompletionTrieNode<T>>(compareFn);
+    const nodeHeap = new Heap<CompletionTrieNode<T>>(
+      (a, b) => a[RANKING]! - b[RANKING]!
+    );
+
+    const valueHeap = new Heap<[T, number]>((a, b) => a[1]! - b[1]!);
 
     node = this.nodeFirstChild(node)!;
-    heap.add(node);
+    nodeHeap.add(node);
 
     let found = 0;
-    while (!heap.empty() && found < k) {
-      node = heap.removeRoot()!;
-      if (this.nodeIsLeaf(node)) {
-        yield node[VALUE]!;
-        found++;
-      } else {
-        // add the first child to the queue
-        const firstChild = this.nodeFirstChild(node);
-        if (firstChild !== undefined) {
-          heap.add(firstChild);
+    while ((!nodeHeap.empty() || !valueHeap.empty()) && found < k) {
+      if (!nodeHeap.empty()) {
+        node = nodeHeap.removeRoot()!;
+        if (this.nodeIsLeaf(node)) {
+          valueHeap.add([node[VALUE]!, node[RANKING]!]);
+          // yield node[VALUE]!;
+          // found++;
+        } else if (this.nodeIsCollisionLeaf(node)) {
+          for (const value of node[VALUES]!) {
+            valueHeap.add(value);
+          }
+        } else {
+          // add the first child to the queue
+          const firstChild = this.nodeFirstChild(node);
+          if (firstChild !== undefined) {
+            nodeHeap.add(firstChild);
+          }
+        }
+        // add the next sibling to the queue
+        const sibling = this.nodeNextSibling(node);
+        if (sibling !== undefined) {
+          nodeHeap.add(sibling);
         }
       }
-      // add the next sibling to the queue
-      const sibling = this.nodeNextSibling(node);
-      if (sibling !== undefined) {
-        heap.add(sibling);
+      if (!valueHeap.empty()) {
+        const value = valueHeap.removeRoot();
+        yield value![0];
+        found++;
       }
     }
   }
@@ -321,6 +356,17 @@ export default class CompletionTrie<T> {
 
   private nodeIsLeaf(node: CompletionTrieNode<T>): boolean {
     return VALUE in node;
+  }
+
+  private nodeIsCollisionLeaf(node: CompletionTrieNode<T>): boolean {
+    return VALUES in node;
+  }
+
+  private convertLeafToCollisionLeaf(node: CompletionTrieNode<T>): void {
+    if (VALUE in node) {
+      node[VALUES] = [[node[VALUE]!, node[RANKING]!]];
+      delete node[VALUE];
+    }
   }
 
   /**
@@ -425,15 +471,22 @@ export default class CompletionTrie<T> {
   }
 
   private setScore(node: CompletionTrieNode<T>, score: number): void {
-    // set the score on the node
-    node[RANKING] = score;
+    let newMin = score;
+
+    if (this.nodeIsCollisionLeaf(node)) {
+      node[VALUES] = node[VALUES]!.sort((a, b) => a[1] - b[1]);
+      node[RANKING] = Math.min(...node[VALUES]!.map((v) => v[1]));
+      // new min is the ranking
+      newMin = node[RANKING]!;
+    } else {
+      // set the score on the node
+      node[RANKING] = score;
+    }
 
     // if its not a leaf node then reset the children cause the score changed
     if (!this.nodeIsLeaf(node)) {
       node[CHILDREN] = this.nodeSortedChildren(node);
     }
-
-    let newMin = score;
 
     // update the parents
     let parent = node[PARENT];
@@ -572,6 +625,7 @@ export default class CompletionTrie<T> {
     return {
       root: this.root,
       size: this._size,
+      allowCollisions: this._allowCollisions,
     };
   }
 
@@ -594,6 +648,7 @@ export default class CompletionTrie<T> {
 
     trie._size = message.size;
     trie.root = message.root;
+    trie._allowCollisions = message.allowCollisions;
 
     const nodeStack: Array<{
       node: CompletionTrieNode<T>;
