@@ -24,6 +24,8 @@ I've starred (⭐️) the algorithms which I find interesting.
 - [Stack](./src/datastructures/Stack.ts)
 - [Trie](./src/datastructures/Trie.ts)
 
+Some of these data structures have methods for supporting serialization. If you want to try to serialize these data structures yourself and are running into circular reference issues, consider using [flatted](https://github.com/WebReflection/flatted). I've had moderate success with flatted and ran into Maximum callstack size exceeded errors but those [issues may be resolved](https://github.com/WebReflection/flatted/issues/39).
+
 ## Installation
 
 ```sh
