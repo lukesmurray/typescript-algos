@@ -160,14 +160,26 @@ export default class CompletionTrie<T> {
    * value is associated with the key.
    * @param key the key to get from the trie
    */
-  public get(key: string): T | T[] | undefined {
+  public get(key: string): T | undefined {
     const { node } = this.traverseForKey(key);
     if (this.nodeIsLeaf(node)) {
-      if (this._allowCollisions) {
-        return [node[VALUE]!];
-      }
-
       return node[VALUE];
+    }
+    if (this.nodeIsCollisionLeaf(node)) {
+      return node[VALUES]![0][0];
+    }
+    return undefined;
+  }
+
+  /**
+   * Get array of values associated with a key in the trie or undefined if no
+   * value is associated with the key.
+   * @param key the key to get from the trie
+   */
+  public getArray(key: string): T[] | undefined {
+    const { node } = this.traverseForKey(key);
+    if (this.nodeIsLeaf(node)) {
+      return [node[VALUE]!];
     }
     if (this.nodeIsCollisionLeaf(node)) {
       return node[VALUES]!.map((n) => n[0]);
