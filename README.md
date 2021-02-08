@@ -15,6 +15,7 @@ I've starred (⭐️) the algorithms which I find interesting.
 - [CompletionTrie ⭐️](./src/datastructures/CompletionTrie.ts)
   - Very efficient top-K completions from a trie
   - Given an alphabet of size **E**, a prefix **p**, a number of requested completions **k**, and **L** where **L** is the average length of the completions excluding the common prefix **p**, returns the top k completions in time _O(Ep + kL log(kL))_. If we replace these numbers with some common values, say E=26, k=10, L=9, and p=1 we can find top-k completions in approx. 430 steps. _Note that the number of prefix matches does not factor into the Big O time_. The brute force topk would involve finding all matching entries (p + M\*L) where **p** is the prefix, **L** is the average length of completions excluding the common prefix **p** and **M** is the number of matches plus M log(M) to sort the matches. For even a small number of matches say M=1000, p=1, L=9 this is approximately 16000 steps.
+  - has rudimentary collision support where multiple values can be added with the same key. The collision support does not retain the same algorithmic guarantees outlined above.
 - [CompressedTrie ⭐️](./src/datastructures/CompressedTrie.ts)
   - An implementation of a Trie where edges can contain more than one symbol at a time. Can greatly reduce the size of the trie [under certain circumstances](https://en.wikipedia.org/wiki/Trie#Compressing_tries)
 - [Heap](./src/datastructures/Heap.ts)

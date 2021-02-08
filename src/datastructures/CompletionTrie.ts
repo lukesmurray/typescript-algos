@@ -163,6 +163,10 @@ export default class CompletionTrie<T> {
   public get(key: string): T | T[] | undefined {
     const { node } = this.traverseForKey(key);
     if (this.nodeIsLeaf(node)) {
+      if (this._allowCollisions) {
+        return [node[VALUE]!];
+      }
+
       return node[VALUE];
     }
     if (this.nodeIsCollisionLeaf(node)) {
