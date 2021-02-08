@@ -118,3 +118,76 @@ test("messaging async works", async () => {
     })
   ).toEqual(trie);
 });
+
+test("setting with no collisions works", () => {
+  const trie = new CompletionTrie<string>();
+  const words: Array<[string, string, number]> = [
+    ["s", "b", 1],
+    ["s", "a", 0],
+  ];
+  words.forEach(([word, value, score]) => {
+    trie.set(word, value, score);
+  });
+  expect([...trie.topK("s")]).toEqual(["a"]);
+});
+
+test("setting with collisions works", () => {
+  const trie = new CompletionTrie<string>(true);
+  const words: Array<[string, string, number]> = [
+    ["s", "b", 1],
+    ["s", "c", 2],
+    ["s", "a", 0],
+  ];
+  words.forEach(([word, value, score]) => {
+    trie.set(word, value, score);
+  });
+  expect([...trie.topK("s")]).toEqual(["a", "b", "c"]);
+  expect([...trie.get("s")]).toEqual(["a", "b", "c"]);
+});
+
+test("top k words with collisions trivial", () => {
+  const trie = new CompletionTrie<string>(true);
+  const words = ["s"];
+  const values: Array<[string, string, number]> = [];
+  let counter = 0;
+  for (const word of words) {
+    values.push([word, `${word}_a`, counter++]);
+    values.push([word, `${word}_b`, counter++]);
+    values.push([word, `${word}_c`, counter++]);
+  }
+
+  values.forEach(([word, value, score]) => {
+    trie.set(word, value, score);
+  });
+  expect([...trie.topK("s")]).toEqual(values.map((v) => v[1]));
+});
+
+test("top k words with collisions most challenging", () => {
+  const trie = new CompletionTrie<string>(true);
+  const words = [
+    "s",
+    "so",
+    "soar",
+    "soap",
+    "soft",
+    "softer",
+    "so so soft",
+    "soapy soft",
+    "ss",
+    "sss",
+    "ssss",
+    "sssss",
+  ];
+  const values: Array<[string, string, number]> = [];
+  let counter = 0;
+  for (const word of words) {
+    values.push([word, `${word}_a`, counter++]);
+    values.push([word, `${word}_b`, counter++]);
+    values.push([word, `${word}_c`, counter++]);
+  }
+
+  values.forEach(([word, value, score]) => {
+    trie.set(word, value, score);
+  });
+  expect([...trie.topK("s")]).toEqual(values.map((v) => v[1]));
+});
