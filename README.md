@@ -1,7 +1,7 @@
 # Typescript-algos
 
 Small collection of both common and uncommon data structures written in typescript and published for convenience and use in my projects.
-Most of the data structures are based off of implementations from [Introduction to Algorithms](https://en.wikipedia.org/wiki/Introduction_to_Algorithms) and were written for clarity rather than absolute. The Aho Corasick implementation is based off of Stanford's [CS166: Data Structures](http://web.stanford.edu/class/cs166/) slides. The completion trie is a modified implementation of the Completion Trie presented in the paper [Space-efficient data structures for Top-k completion (2013)](https://dl.acm.org/doi/10.1145/2488388.2488440).
+Most of the data structures are based off of implementations from [Introduction to Algorithms](https://en.wikipedia.org/wiki/Introduction_to_Algorithms) and were written for clarity rather than efficiency. The Aho Corasick implementation is based off of Stanford's [CS166: Data Structures](http://web.stanford.edu/class/cs166/) slides. The completion trie is a modified implementation of the Completion Trie presented in the paper [Space-efficient data structures for Top-k completion (2013)](https://dl.acm.org/doi/10.1145/2488388.2488440).
 
 Feel free to use these for your own projects but unless you're using one of the starred algorithms I recommend using the implementations from [mnemonist](https://github.com/Yomguithereal/mnemonist).
 If you are using one of the starred algorithms I'd love to know what you're building!
