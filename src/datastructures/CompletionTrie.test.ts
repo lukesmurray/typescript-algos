@@ -142,7 +142,7 @@ test("setting with collisions works", () => {
     trie.set(word, value, score);
   });
   expect([...trie.topK("s")]).toEqual(["a", "b", "c"]);
-  expect([...trie.getArray("s")]).toEqual(["a", "b", "c"]);
+  expect(trie.getArray("s")).toEqual(["a", "b", "c"]);
 });
 
 test("top k words with collisions trivial", () => {
