@@ -97,7 +97,7 @@ export default class CompletionTrie<T> {
     // check to see if any edge has shares a prefix with the key
     let commonPrefix: string | undefined;
     let nextEdge: string | undefined;
-    for (const edge in node) {
+    for (const edge of Object.getOwnPropertyNames(node)) {
       commonPrefix = longestCommonPrefix(keySuffix, edge);
       if (commonPrefix.length > 0) {
         nextEdge = edge;
@@ -224,7 +224,7 @@ export default class CompletionTrie<T> {
         grandparent !== undefined &&
         parentEdge !== undefined
       ) {
-        for (const child in parent) {
+        for (const child of Object.getOwnPropertyNames(parent)) {
           grandparent[parentEdge + child] = parent[child];
           delete grandparent[parentEdge];
           lowestChangedNode = grandparent[parentEdge + child]!;
@@ -258,11 +258,11 @@ export default class CompletionTrie<T> {
       node = nodeStack.pop()!;
 
       // iterate over its direct children
-      for (edge in node) {
+      for (edge of Object.getOwnPropertyNames(node)) {
         nodeStack.push(node[edge]!);
         keyStack.push(prefix + edge);
       }
-      if (LEAF in node) {
+      if (Object.getOwnPropertySymbols(node).includes(LEAF)) {
         const leaf = node[LEAF]!;
         if (this.nodeIsLeaf(leaf)) {
           yield { key: prefix, value: leaf[VALUE]! };
@@ -371,15 +371,15 @@ export default class CompletionTrie<T> {
   }
 
   private nodeIsLeaf(node: CompletionTrieNode<T>): boolean {
-    return VALUE in node;
+    return Object.getOwnPropertySymbols(node).includes(VALUE);
   }
 
   private nodeIsCollisionLeaf(node: CompletionTrieNode<T>): boolean {
-    return VALUES in node;
+    return Object.getOwnPropertySymbols(node).includes(VALUES);
   }
 
   private convertLeafToCollisionLeaf(node: CompletionTrieNode<T>): void {
-    if (VALUE in node) {
+    if (this.nodeIsLeaf(node)) {
       node[VALUES] = [[node[VALUE]!, node[RANKING]!]];
       delete node[VALUE];
     }
@@ -396,7 +396,7 @@ export default class CompletionTrie<T> {
     // if keySuffix is non zero we still have some matching to do
     if (keySuffix.length > 0) {
       // return the first edge which extends keySuffix
-      for (const edge in node) {
+      for (const edge of Object.getOwnPropertyNames(node)) {
         if (edge.startsWith(keySuffix)) {
           return node[edge]!;
         }
@@ -448,7 +448,7 @@ export default class CompletionTrie<T> {
     while (charactersFound < key.length) {
       // find the next edge to explore
       let nextEdge: string | undefined;
-      for (const edge in node) {
+      for (const edge of Object.getOwnPropertyNames(node)) {
         if (
           key.slice(charactersFound, charactersFound + edge.length) === edge
         ) {
@@ -549,7 +549,7 @@ export default class CompletionTrie<T> {
     node: CompletionTrieNode<T>
   ): Array<string | typeof LEAF> {
     const keys: Array<string | typeof LEAF> = Object.keys(node);
-    if (LEAF in node) {
+    if (Object.getOwnPropertySymbols(node).includes(LEAF)) {
       keys.push(LEAF);
     }
     keys.sort((a, b) => {
@@ -566,7 +566,7 @@ export default class CompletionTrie<T> {
 
   private nodeMinValue(node: CompletionTrieNode<T>): number {
     let newMin = Number.POSITIVE_INFINITY;
-    for (const child in node) {
+    for (const child of Object.getOwnPropertyNames(node)) {
       if (
         node[child]![RANKING] !== undefined &&
         node[child]![RANKING]! < newMin
@@ -591,16 +591,16 @@ export default class CompletionTrie<T> {
   // converts node into a serializable object, note that parent links are lost
   private nodeToSerializableRecursive(node: CompletionTrieNode<T>): string {
     const result: any = {};
-    for (const prop in node) {
+    for (const prop of Object.getOwnPropertyNames(node)) {
       result[prop] = this.nodeToSerializableRecursive(node[prop]!);
     }
 
-    if (LEAF in node) {
+    if (Object.getOwnPropertySymbols(node).includes(LEAF)) {
       result[symbolToString(LEAF)] = this.nodeToSerializableRecursive(
         node[LEAF]!
       );
     }
-    if (CHILDREN in node) {
+    if (Object.getOwnPropertySymbols(node).includes(CHILDREN)) {
       result[symbolToString(CHILDREN)] = node[CHILDREN]?.map((v) => {
         if (typeof v === "symbol") {
           return symbolToString(v);
@@ -608,16 +608,16 @@ export default class CompletionTrie<T> {
         return v;
       });
     }
-    if (VALUE in node) {
+    if (Object.getOwnPropertySymbols(node).includes(VALUE)) {
       result[symbolToString(VALUE)] = node[VALUE];
     }
-    if (VALUES in node) {
+    if (Object.getOwnPropertySymbols(node).includes(VALUES)) {
       result[symbolToString(VALUES)] = node[VALUES];
     }
-    if (RANKING in node) {
+    if (Object.getOwnPropertySymbols(node).includes(RANKING)) {
       result[symbolToString(RANKING)] = node[RANKING];
     }
-    if (CHILD_INDEX in node) {
+    if (Object.getOwnPropertySymbols(node).includes(CHILD_INDEX)) {
       result[symbolToString(CHILD_INDEX)] = node[CHILD_INDEX];
     }
 
@@ -682,10 +682,10 @@ export default class CompletionTrie<T> {
       node[PARENT] = parent;
       trie.addSymbolsToNode(node);
 
-      for (const childKey in node) {
+      for (const childKey of Object.getOwnPropertyNames(node)) {
         nodeStack.push({ node: node[childKey]!, parent: node });
       }
-      if (LEAF in node) {
+      if (Object.getOwnPropertySymbols(node).includes(LEAF)) {
         nodeStack.push({ node: node[LEAF]!, parent: node });
       }
     };
@@ -729,16 +729,16 @@ export default class CompletionTrie<T> {
   }
 
   private removeSymbolsRecursively(node: CompletionTrieNode<T>): void {
-    for (const childKey in node) {
+    for (const childKey of Object.getOwnPropertyNames(node)) {
       this.removeSymbolsRecursively(node[childKey]!);
     }
 
-    if (LEAF in node) {
+    if (Object.getOwnPropertySymbols(node).includes(LEAF)) {
       node[symbolToString(LEAF)] = node[LEAF]!;
       this.removeSymbolsRecursively(node[LEAF]!);
     }
 
-    if (CHILDREN in node) {
+    if (Object.getOwnPropertySymbols(node).includes(CHILDREN)) {
       node[symbolToString(CHILDREN)] = node[CHILDREN]!.map((v) => {
         if (typeof v === "symbol") {
           return symbolToString(v);
@@ -747,16 +747,16 @@ export default class CompletionTrie<T> {
       }) as any;
     }
 
-    if (VALUE in node) {
+    if (Object.getOwnPropertySymbols(node).includes(VALUE)) {
       node[symbolToString(VALUE)] = node[VALUE] as any;
     }
-    if (VALUES in node) {
+    if (Object.getOwnPropertySymbols(node).includes(VALUES)) {
       node[symbolToString(VALUES)] = node[VALUES] as any;
     }
-    if (RANKING in node) {
+    if (Object.getOwnPropertySymbols(node).includes(RANKING)) {
       node[symbolToString(RANKING)] = node[RANKING] as any;
     }
-    if (CHILD_INDEX in node) {
+    if (Object.getOwnPropertySymbols(node).includes(CHILD_INDEX)) {
       node[symbolToString(CHILD_INDEX)] = node[CHILD_INDEX] as any;
     }
   }
@@ -804,7 +804,7 @@ export default class CompletionTrie<T> {
     if (parent !== undefined) {
       node[PARENT] = parent;
     }
-    for (const childKey in node) {
+    for (const childKey of Object.getOwnPropertyNames(node)) {
       this.addParentLinksRecursively(node[childKey], node);
     }
     this.addParentLinksRecursively(node[LEAF], node);
@@ -819,7 +819,7 @@ export default class CompletionTrie<T> {
     if (node[PARENT] !== undefined) {
       delete node[PARENT];
     }
-    for (const childKey in node) {
+    for (const childKey of Object.getOwnPropertyNames(node)) {
       this.removeParentLinksRecursively(node[childKey]);
     }
     this.removeParentLinksRecursively(node[LEAF]);
