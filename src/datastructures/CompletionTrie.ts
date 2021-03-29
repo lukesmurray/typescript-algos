@@ -602,7 +602,7 @@ export default class CompletionTrie<T> {
     }
     if (Object.getOwnPropertySymbols(node).includes(CHILDREN)) {
       result[symbolToString(CHILDREN)] = node[CHILDREN]?.map((v) => {
-        if (typeof v === "symbol") {
+        if (isSymbol(v)) {
           return symbolToString(v);
         }
         return v;
@@ -740,7 +740,7 @@ export default class CompletionTrie<T> {
 
     if (Object.getOwnPropertySymbols(node).includes(CHILDREN)) {
       node[symbolToString(CHILDREN)] = node[CHILDREN]!.map((v) => {
-        if (typeof v === "symbol") {
+        if (isSymbol(v)) {
           return symbolToString(v);
         }
         return v;
@@ -824,4 +824,15 @@ export default class CompletionTrie<T> {
     }
     this.removeParentLinksRecursively(node[LEAF]);
   }
+}
+
+/**
+ * polyfill safe way to check that a value is a symbol
+ */
+function isSymbol(val: any): val is Symbol {
+  return (
+    typeof val === "symbol" ||
+    (typeof val === "object" &&
+      Object.prototype.toString.call(val) === "[object Symbol]")
+  );
 }
